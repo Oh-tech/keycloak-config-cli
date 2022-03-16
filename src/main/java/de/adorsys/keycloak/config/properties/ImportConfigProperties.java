@@ -57,6 +57,9 @@ public class ImportConfigProperties {
     @NotNull
     private final boolean state;
 
+    @NotNull
+    private final boolean compactState;
+
     private final String stateEncryptionKey;
 
     @Pattern(regexp = "^[A-Fa-f0-9]+$")
@@ -99,6 +102,7 @@ public class ImportConfigProperties {
             boolean validate,
             String cacheKey,
             boolean state,
+            boolean compactState,
             String stateEncryptionKey,
             String stateEncryptionSalt,
             ImportFileType fileType,
@@ -117,6 +121,7 @@ public class ImportConfigProperties {
         this.validate = validate;
         this.cacheKey = cacheKey;
         this.state = state;
+        this.compactState = compactState;
         this.stateEncryptionKey = stateEncryptionKey;
         this.stateEncryptionSalt = stateEncryptionSalt;
         this.fileType = fileType;
@@ -157,6 +162,10 @@ public class ImportConfigProperties {
 
     public boolean isState() {
         return state;
+    }
+
+    public boolean isCompactState() {
+        return compactState;
     }
 
     public String getStateEncryptionKey() {

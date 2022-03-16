@@ -22,6 +22,7 @@ package de.adorsys.keycloak.config.repository;
 
 import de.adorsys.keycloak.config.model.RealmImport;
 import de.adorsys.keycloak.config.properties.ImportConfigProperties;
+import de.adorsys.keycloak.config.util.CompactStringsUtil;
 import de.adorsys.keycloak.config.util.CryptoUtil;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.springframework.stereotype.Component;
@@ -120,12 +121,21 @@ public class StateRepository {
 
         String state = String.join("", stateValues);
 
+        if (this.importConfigProperties.isCompactState()) {
+            state = CompactStringsUtil.decompress(state);
+        }
+
         if (this.importConfigProperties.getStateEncryptionKey() != null) {
             state = CryptoUtil.decrypt(
                     state,
                     this.importConfigProperties.getStateEncryptionKey(),
                     this.importConfigProperties.getStateEncryptionSalt()
             );
+        }
+
+        // Check if compressed state was enabled previously.
+        if (!this.importConfigProperties.isCompactState() && CompactStringsUtil.isBase64(state)) {
+            state = CompactStringsUtil.decompress(state);
         }
 
         return fromJson(state);
@@ -135,6 +145,10 @@ public class StateRepository {
         RealmRepresentation existingRealm = realmRepository.get(realmImport.getRealm());
         Map<String, String> realmAttributes = existingRealm.getAttributes();
         realmAttributes.putAll(customAttributes);
+
+        // clean outdated chunks of state attributes
+        realmAttributes.entrySet()
+                .removeIf(e -> isStateAttribute(e) && !customAttributes.containsKey(e.getKey()));
 
         realmRepository.update(existingRealm);
     }
@@ -163,6 +177,10 @@ public class StateRepository {
             );
         }
 
+        if (this.importConfigProperties.isCompactState()) {
+            valuesAsString = CompactStringsUtil.compress(valuesAsString);
+        }
+
         List<String> valueList = splitEqually(valuesAsString);
 
         customAttributes.entrySet()
@@ -174,5 +192,13 @@ public class StateRepository {
             customAttributes.put(getCustomAttributeKey(entity) + "-" + index, value);
             index++;
         }
+
+        // it could be that previously the value took more chunks
+        if (this.importConfigProperties.isCompactState()) {
+            while (customAttributes.remove(getCustomAttributeKey(entity) + "-" + index) != null) {
+                index++;
+            }
+        }
+
     }
 }

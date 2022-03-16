@@ -49,6 +49,7 @@ import static org.hamcrest.core.Is.is;
         "import.validate=false",
         "import.path=other",
         "import.state=false",
+        "import.compact-state=false",
         "import.state-encryption-key=password",
         "import.state-encryption-salt=0123456789ABCDEFabcdef",
         "import.file-type=yaml",
@@ -87,6 +88,7 @@ class ImportConfigPropertiesTest {
         assertThat(properties.isValidate(), is(false));
         assertThat(properties.getCacheKey(), is("custom"));
         assertThat(properties.isState(), is(false));
+        assertThat(properties.isCompactState(), is(false));
         assertThat(properties.getStateEncryptionKey(), is("password"));
         assertThat(properties.getStateEncryptionSalt(), is("0123456789ABCDEFabcdef"));
         assertThat(properties.getFileType(), is(ImportConfigProperties.ImportFileType.YAML));
