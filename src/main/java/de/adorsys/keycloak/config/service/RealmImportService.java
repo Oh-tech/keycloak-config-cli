@@ -58,15 +58,6 @@ public class RealmImportService {
             "defaultOptionalClientScopes",
     };
 
-    static final String[] patchingPropertiesForFlowImport = new String[]{
-            "browserFlow",
-            "directGrantFlow",
-            "clientAuthenticationFlow",
-            "dockerAuthenticationFlow",
-            "registrationFlow",
-            "resetCredentialsFlow",
-    };
-
     private static final Logger logger = LoggerFactory.getLogger(RealmImportService.class);
     private final KeycloakProvider keycloakProvider;
     private final RealmRepository realmRepository;
@@ -83,6 +74,7 @@ public class RealmImportService {
     private final RequiredActionsImportService requiredActionsImportService;
     private final CustomImportService customImportService;
     private final ScopeMappingImportService scopeMappingImportService;
+    private final ClientAuthorizationImportService clientAuthorizationImportService;
     private final ClientScopeMappingImportService clientScopeMappingImportService;
     private final IdentityProviderImportService identityProviderImportService;
 
@@ -108,6 +100,7 @@ public class RealmImportService {
             RequiredActionsImportService requiredActionsImportService,
             CustomImportService customImportService,
             ScopeMappingImportService scopeMappingImportService,
+            ClientAuthorizationImportService clientAuthorizationImportService,
             ClientScopeMappingImportService clientScopeMappingImportService,
             IdentityProviderImportService identityProviderImportService,
             ChecksumService checksumService,
@@ -127,6 +120,7 @@ public class RealmImportService {
         this.requiredActionsImportService = requiredActionsImportService;
         this.customImportService = customImportService;
         this.scopeMappingImportService = scopeMappingImportService;
+        this.clientAuthorizationImportService = clientAuthorizationImportService;
         this.clientScopeMappingImportService = clientScopeMappingImportService;
         this.identityProviderImportService = identityProviderImportService;
         this.checksumService = checksumService;
@@ -203,6 +197,7 @@ public class RealmImportService {
         requiredActionsImportService.doImport(realmImport);
         authenticationFlowsImportService.doImport(realmImport);
         authenticatorConfigImportService.doImport(realmImport);
+        clientAuthorizationImportService.doImport(realmImport);
         clientImportService.doImportDependencies(realmImport);
         identityProviderImportService.doImport(realmImport);
         scopeMappingImportService.doImport(realmImport);

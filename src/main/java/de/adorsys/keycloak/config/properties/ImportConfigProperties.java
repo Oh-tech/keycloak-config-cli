@@ -24,6 +24,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.Collection;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -39,8 +40,13 @@ public class ImportConfigProperties {
     public static final String REALM_CHECKSUM_ATTRIBUTE_PREFIX_KEY = REALM_STATE_ATTRIBUTE_COMMON_PREFIX + ".import-checksum-{0}";
     public static final String REALM_STATE_ATTRIBUTE_PREFIX_KEY = REALM_STATE_ATTRIBUTE_COMMON_PREFIX + ".state-{0}-{1}";
 
-    @NotBlank
-    private final String path;
+    @NotNull
+    private final Collection<String> path;
+
+    private final Collection<String> exclude;
+
+    @NotNull
+    private final boolean hiddenFiles;
 
     @NotNull
     private final boolean varSubstitution;
@@ -96,7 +102,9 @@ public class ImportConfigProperties {
     private final boolean skipAttributesForFederatedUser;
 
     public ImportConfigProperties(
-            String path,
+            Collection<String> path,
+            Collection<String> exclude,
+            boolean hiddenFiles,
             boolean varSubstitution,
             boolean force,
             boolean validate,
@@ -116,6 +124,8 @@ public class ImportConfigProperties {
             boolean removeDefaultRoleFromUser,
             boolean skipAttributesForFederatedUser) {
         this.path = path;
+        this.exclude = exclude;
+        this.hiddenFiles = hiddenFiles;
         this.varSubstitution = varSubstitution;
         this.force = force;
         this.validate = validate;
@@ -136,8 +146,16 @@ public class ImportConfigProperties {
         this.skipAttributesForFederatedUser = skipAttributesForFederatedUser;
     }
 
-    public String getPath() {
+    public Collection<String> getPath() {
         return path;
+    }
+
+    public Collection<String> getExclude() {
+        return exclude;
+    }
+
+    public boolean isHiddenFiles() {
+        return hiddenFiles;
     }
 
     public boolean isForce() {
@@ -256,6 +274,9 @@ public class ImportConfigProperties {
         @NotNull
         private final ImportManagedPropertiesValues client;
 
+        @NotNull
+        private final ImportManagedPropertiesValues clientAuthorizationResources;
+
         public ImportManagedProperties(
                 ImportManagedPropertiesValues requiredAction, ImportManagedPropertiesValues group,
                 ImportManagedPropertiesValues clientScope, ImportManagedPropertiesValues scopeMapping,
@@ -263,7 +284,7 @@ public class ImportConfigProperties {
                 ImportManagedPropertiesValues component, ImportManagedPropertiesValues subComponent,
                 ImportManagedPropertiesValues authenticationFlow, ImportManagedPropertiesValues identityProvider,
                 ImportManagedPropertiesValues identityProviderMapper, ImportManagedPropertiesValues role,
-                ImportManagedPropertiesValues client) {
+                ImportManagedPropertiesValues client, ImportManagedPropertiesValues clientAuthorizationResources) {
             this.requiredAction = requiredAction;
             this.group = group;
             this.clientScope = clientScope;
@@ -276,6 +297,7 @@ public class ImportConfigProperties {
             this.identityProviderMapper = identityProviderMapper;
             this.role = role;
             this.client = client;
+            this.clientAuthorizationResources = clientAuthorizationResources;
         }
 
         public ImportManagedPropertiesValues getRequiredAction() {
@@ -324,6 +346,10 @@ public class ImportConfigProperties {
 
         public ImportManagedPropertiesValues getClient() {
             return client;
+        }
+
+        public ImportManagedPropertiesValues getClientAuthorizationResources() {
+            return clientAuthorizationResources;
         }
 
         public enum ImportManagedPropertiesValues {

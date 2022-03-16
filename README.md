@@ -11,16 +11,17 @@ keycloak-config-cli is a Keycloak utility to ensure the desired configuration st
 
 # Config files
 
-The config files are based on the keycloak export files. You can use them to re-import your settings.
-But keep your files as small as possible. Remove all UUIDs and all stuff which is default set by keycloak.
+The config files are based on the keycloak export files. You can use them to re-import your settings. But keep your files as small as possible. Remove all UUIDs and all stuff which is default set by keycloak.
 
-[moped.json](./contrib/example-config/moped.json) is a full working example file you can consider.
-Other examples are located in the [test resources](./src/test/resources/import-files).
+[moped.json](./contrib/example-config/moped.json) is a full working example file you can consider. Other examples are located in the [test resources](./src/test/resources/import-files).
 
 ## Variable Substitution
 
 keycloak-config-cli supports variable substitution of config files. This could be enabled by `import.var-substitution=true` (**disabled by default**).
-Use substitutions like
+
+Variables exposed by spring boot (through configtree or [external configuration](https://docs.spring.io/spring-boot/docs/2.5.0/reference/htmlsingle/#features.external-config.typesafe-configuration-properties.relaxed-binding.environment-variables)) can be accessed by `$(property.name)`.
+
+In additional, the string substitution support multiple prefixes for different approaches
 
 ```
 Base64 Decoder:        $(base64Decoder:SGVsbG9Xb3JsZCE=)
@@ -186,19 +187,10 @@ docker run \
 
 ### Docker build
 
-To build the docker image locally, you have to build the keycloak-config-cli first. By default, the dockerfile expects the jar file
-at `./target/keycloak-config-cli.jar`.
+You can build an own docker image by running
 
-The location of `./target/keycloak-config-cli.jar` can be modified by using `--build-arg JAR=` parameter on the `docker build` command. Inside the
-docker build the `ADD` command is used. Multiple source like zip files OR remote locations are supported, too.
-
-Here is an example to build the docker image using the jar form a [Github release](https://github.com/adorsys/keycloak-config-cli/releases/tag/v4.2.0)
-.
-
-```shell script
-docker build \
-    --build-arg JAR=https://github.com/adorsys/keycloak-config-cli/releases/download/v4.2.0/keycloak-config-cli-15.0.1.jar \
-    -t keycloak-config-cli:latest .
+```shell
+docker build -t keycloak-config-cli .
 ```
 
 ## Helm
@@ -213,37 +205,39 @@ Checkout helm docs about [chart dependencies](https://helm.sh/docs/topics/charts
 
 ## CLI option / Environment Variables
 
-| CLI Option                                            | ENV Variable                                       | Description                                                                       | Default     | Docs                                                                                                                            |
-|-------------------------------------------------------|----------------------------------------------------|-----------------------------------------------------------------------------------|-------------|---------------------------------------------------------------------------------------------------------------------------------|
-| --keycloak.url                                        | KEYCLOAK_URL                                       | Keycloak URL including web context. Format: `scheme://hostname:port/web-context`. | -           |                                                                                                                                 |
-| --keycloak.user                                       | KEYCLOAK_USER                                      | login user name                                                                   | `admin`     |                                                                                                                                 |
-| --keycloak.password                                   | KEYCLOAK_PASSWORD                                  | login user password                                                               | -           |                                                                                                                                 |
-| --keycloak.client-id                                  | KEYCLOAK_CLIENTID                                  | login clientId                                                                    | `admin-cli` |                                                                                                                                 |
-| --keycloak.client-secret                              | KEYCLOAK_CLIENTSECRET                              | login client secret                                                               | -           |                                                                                                                                 |
-| --keycloak.grant-type                                 | KEYCLOAK_GRANTTYPE                                 | login grant_type                                                                  | `password`  |                                                                                                                                 |
-| --keycloak.login-realm                                | KEYCLOAK_LOGINREALM                                | login realm                                                                       | `master`    |                                                                                                                                 |
-| --keycloak.ssl-verify                                 | KEYCLOAK_SSLVERIFY                                 | Verify ssl connection to keycloak                                                 | `true`      |                                                                                                                                 |
-| --keycloak.http-proxy                                 | KEYCLOAK_HTTPPROXY                                 | Connect to Keycloak via HTTP Proxy. Format: `scheme://hostname:port`              | -           |                                                                                                                                 |
-| --keycloak.connect-timeout                            | KEYCLOAK_CONNECTTIMEOUT                            | Connection timeout of the underyling Resteasy client                              | `10s`       |                                                                                                                                 |
-| --keycloak.read-timeout                               | KEYCLOAK_READTIMEOUT                               | Read timeout of the underlying Resteasy client                                    | `10s`       | configured as [Java Duration](https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html)                                |
-| --keycloak.availability-check.enabled                 | KEYCLOAK_AVAILABILITYCHECK_ENABLED                 | Wait until Keycloak is available                                                  | `false`     | configured as [Java Duration](https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html)                                |
-| --keycloak.availability-check.timeout                 | KEYCLOAK_AVAILABILITYCHECK_TIMEOUT                 | Wait timeout for keycloak availability check                                      | `120s`      |                                                                                                                                 |
-| --import.path                                         | IMPORT_PATH                                        | Location of config files (if location is a directory, all files will be imported) | `/config`   | [Spring ResourceLoader](https://docs.spring.io/spring-framework/docs/current/reference/html/core.html#resources-resourceloader) |
-| --import.force                                        | IMPORT_FORCE                                       | Import realm even if config from `--import.path` is unchanged                     | `false`     |                                                                                                                                 |
-| --import.validate                                     | IMPORT_VALIDATE                                    | Validate configuration settings                                                   | `false`     |                                                                                                                                 |
-| --import.cache-key                                    | IMPORT_CACHEKEY                                    | Cache key for importing config.                                                   | `default`   |                                                                                                                                 |
-| --import.state                                        | IMPORT_STATE                                       | Enable state management. Purge only resources managed by kecloak-config-cli. S.   | `true`      | [MANAGED.md](docs/MANAGED.md)                                                                                                   |
-| --import.state-encryption-key                         | IMPORT_STATEENCRYPTIONKEY                          | Enables state in encrypted format. If unset, state will be stored in plain        | -           |                                                                                                                                 |
-| --import.file-type                                    | IMPORT_FILETYPE                                    | Format of the configuration import file. Allowed values: AUTO,JSON,YAML           | `auto`      |                                                                                                                                 |
-| --import.parallel                                     | IMPORT_PARALLEL                                    | Enable parallel import of certain resources                                       | `false`     |                                                                                                                                 |
-| --import.var-substitution                             | IMPORT_VARSUBSTITUTION                             | Enable variable substitution config files                                         | `false`     |                                                                                                                                 |
-| --import.var-substitution-in-variable                 | IMPORT_VARSUBSTITUTION_IN_VARIABLES                | Expand variables in variables.                                                    | `true`      |                                                                                                                                 |
-| --import.var-substitution-undefined-throws-exceptions | IMPORT_VARSUBSTITUTION_UNDEFINED_THROWS_EXCEPTIONS | Raise exceptions, if variables are not defined.                                   | `true`      |                                                                                                                                 |
-| --import.var-substitution-prefix                      | IMPORT_VARSUBSTITUTION_PREFIX                      | Configure the variable prefix, if `import.var-substitution` is enabled.           | `$(`        |                                                                                                                                 |
-| --import.var-substitution-suffix                      | IMPORT_VARSUBSTITUTION_SUFFIX                      | Configure the variable suffix, if `import.var-substitution` is enabled.           | `)`         |                                                                                                                                 |
-| --import.sync-user-federation                         | IMPORT_SYNC_USER_FEDERATION                        | Enable the synchronization of user federation.                                    | `false`     |                                                                                                                                 |
-| --import.remove-default-role-from-user                | IMPORT_REMOVEDEFAULTROLEFROMUSER                   | See below.                                                                        | `false`     |                                                                                                                                 |
-| --import.skip-attributes-for-federated-user           | IMPORT_SKIP_ATTRIBUTESFORFEDERATEDUSER             | Set attributes to null for federated users to avoid read only conflicts           | `false`     |                                                                                                                                 |
+| CLI Option                                            | ENV Variable                                       | Description                                                                       | Default     | Docs                                                                                             |
+|-------------------------------------------------------|----------------------------------------------------|-----------------------------------------------------------------------------------|-------------|--------------------------------------------------------------------------------------------------|
+| --keycloak.url                                        | KEYCLOAK_URL                                       | Keycloak URL including web context. Format: `scheme://hostname:port/web-context`. | -           |                                                                                                  |
+| --keycloak.user                                       | KEYCLOAK_USER                                      | login user name                                                                   | `admin`     |                                                                                                  |
+| --keycloak.password                                   | KEYCLOAK_PASSWORD                                  | login user password                                                               | -           |                                                                                                  |
+| --keycloak.client-id                                  | KEYCLOAK_CLIENTID                                  | login clientId                                                                    | `admin-cli` |                                                                                                  |
+| --keycloak.client-secret                              | KEYCLOAK_CLIENTSECRET                              | login client secret                                                               | -           |                                                                                                  |
+| --keycloak.grant-type                                 | KEYCLOAK_GRANTTYPE                                 | login grant_type                                                                  | `password`  |                                                                                                  |
+| --keycloak.login-realm                                | KEYCLOAK_LOGINREALM                                | login realm                                                                       | `master`    |                                                                                                  |
+| --keycloak.ssl-verify                                 | KEYCLOAK_SSLVERIFY                                 | Verify ssl connection to keycloak                                                 | `true`      |                                                                                                  |
+| --keycloak.http-proxy                                 | KEYCLOAK_HTTPPROXY                                 | Connect to Keycloak via HTTP Proxy. Format: `scheme://hostname:port`              | -           |                                                                                                  |
+| --keycloak.connect-timeout                            | KEYCLOAK_CONNECTTIMEOUT                            | Connection timeout of the underyling Resteasy client                              | `10s`       |                                                                                                  |
+| --keycloak.read-timeout                               | KEYCLOAK_READTIMEOUT                               | Read timeout of the underlying Resteasy client                                    | `10s`       | configured as [Java Duration](https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html) |
+| --keycloak.availability-check.enabled                 | KEYCLOAK_AVAILABILITYCHECK_ENABLED                 | Wait until Keycloak is available                                                  | `false`     | configured as [Java Duration](https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html) |
+| --keycloak.availability-check.timeout                 | KEYCLOAK_AVAILABILITYCHECK_TIMEOUT                 | Wait timeout for keycloak availability check                                      | `120s`      |                                                                                                  |
+| --import.path                                         | IMPORT_PATH                                        | Location of config files (URL, file path, directory, or Ant-style pattern)        | -           | [IMPORT.md](docs/IMPORT.md)                                                                      |
+| --import.hidden-files                                 | IMPORT_HIDDEN_FILES                                | Import hidden files                                                               | `false`     | [IMPORT.md](docs/IMPORT.md)                                                                      |
+| --import.exclude                                      | IMPORT_EXCLUDE                                     | Exclude files with Ant-style pattern                                              | -           | [IMPORT.md](docs/IMPORT.md)                                                                      |
+| --import.force                                        | IMPORT_FORCE                                       | Import realm even if config from `--import.path` is unchanged                     | `false`     |                                                                                                  |
+| --import.validate                                     | IMPORT_VALIDATE                                    | Validate configuration settings                                                   | `false`     |                                                                                                  |
+| --import.cache-key                                    | IMPORT_CACHEKEY                                    | Cache key for importing config.                                                   | `default`   |                                                                                                  |
+| --import.state                                        | IMPORT_STATE                                       | Enable state management. Purge only resources managed by kecloak-config-cli. S.   | `true`      | [MANAGED.md](docs/MANAGED.md)                                                                    |
+| --import.state-encryption-key                         | IMPORT_STATEENCRYPTIONKEY                          | Enables state in encrypted format. If unset, state will be stored in plain        | -           |                                                                                                  |
+| --import.file-type                                    | IMPORT_FILETYPE                                    | Format of the configuration import file. Allowed values: AUTO,JSON,YAML           | `auto`      |                                                                                                  |
+| --import.parallel                                     | IMPORT_PARALLEL                                    | Enable parallel import of certain resources                                       | `false`     |                                                                                                  |
+| --import.var-substitution                             | IMPORT_VARSUBSTITUTION                             | Enable variable substitution config files                                         | `false`     |                                                                                                  |
+| --import.var-substitution-in-variable                 | IMPORT_VARSUBSTITUTION_IN_VARIABLES                | Expand variables in variables.                                                    | `true`      |                                                                                                  |
+| --import.var-substitution-undefined-throws-exceptions | IMPORT_VARSUBSTITUTION_UNDEFINED_THROWS_EXCEPTIONS | Raise exceptions, if variables are not defined.                                   | `true`      |                                                                                                  |
+| --import.var-substitution-prefix                      | IMPORT_VARSUBSTITUTION_PREFIX                      | Configure the variable prefix, if `import.var-substitution` is enabled.           | `$(`        |                                                                                                  |
+| --import.var-substitution-suffix                      | IMPORT_VARSUBSTITUTION_SUFFIX                      | Configure the variable suffix, if `import.var-substitution` is enabled.           | `)`         |                                                                                                  |
+| --import.sync-user-federation                         | IMPORT_SYNC_USER_FEDERATION                        | Enable the synchronization of user federation.                                    | `false`     |                                                                                                  |
+| --import.remove-default-role-from-user                | IMPORT_REMOVEDEFAULTROLEFROMUSER                   | See below.                                                                        | `false`     |                                                                                                  |
+| --import.skip-attributes-for-federated-user           | IMPORT_SKIP_ATTRIBUTESFORFEDERATEDUSER             | Set attributes to null for federated users to avoid read only conflicts           | `false`     |                                                                                                  |
 
 See [application.properties](src/main/resources/application.properties) for all available settings.
 
@@ -255,10 +249,7 @@ if you need alternative spellings.
 
 ### import.remove-default-role-from-user
 
-Keycloak 13 attach a default role named `default-role-$REALM` that contains some defaults from any user.
-Previously keycloak-config-cli remove that default role, if the role not defined inside the import json.
-The flag prevents keycloak-config-cli from exclude `default-roles-$REALM` from removal logic. This results that it's not longer possible to explicit
-remove the role from a user, if `import.remove-default-role-from-user` set to `true`.
+Keycloak 13 attach a default role named `default-role-$REALM` that contains some defaults from any user. Previously keycloak-config-cli remove that default role, if the role not defined inside the import json. The default setting of this flag prevents keycloak-config-cli from removing `default-roles-$REALM`, even if its not defined in the import json. To make keycloak-config-cli able to remove the `default-role-$REALM`, `import.remove-default-role-from-user` must be set to true. In conclusion, you have to add the `default-role-$REALM` to the realm import on certian users, if you want not remove the `default-role-$REALM`.
 
 ## Spring boot options
 

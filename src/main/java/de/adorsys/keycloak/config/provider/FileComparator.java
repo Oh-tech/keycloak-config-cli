@@ -18,20 +18,18 @@
  * ---license-end
  */
 
-package de.adorsys.keycloak.config.util;
+package de.adorsys.keycloak.config.provider;
 
-import java.util.Arrays;
+import java.io.File;
+import java.io.Serializable;
+import java.util.Comparator;
 
-public class ArrayUtil {
-    ArrayUtil() {
-        throw new IllegalStateException("Utility class");
-    }
-
-    // https://stackoverflow.com/a/784842/8087167
-    @SafeVarargs
-    public static <T> T[] concat(T[] first, T... second) {
-        T[] result = Arrays.copyOf(first, first.length + second.length);
-        System.arraycopy(second, 0, result, first.length, second.length);
-        return result;
+/**
+ * Sorting comparator for files, using {@link File#compareTo(File)} behavior.
+ */
+public class FileComparator implements Comparator<File>, Serializable {
+    @Override
+    public int compare(File file, File t1) {
+        return file.compareTo(t1);
     }
 }

@@ -20,12 +20,8 @@
 
 package de.adorsys.keycloak.config.provider;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import de.adorsys.keycloak.config.exception.InvalidImportException;
 import de.adorsys.keycloak.config.model.KeycloakImport;
 import de.adorsys.keycloak.config.model.RealmImport;
@@ -34,39 +30,50 @@ import de.adorsys.keycloak.config.util.ChecksumUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.text.StringSubstitutor;
+import org.apache.commons.text.lookup.StringLookup;
+import org.apache.commons.text.lookup.StringLookupFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Component;
+import org.springframework.util.PathMatcher;
 import org.springframework.util.ResourceUtils;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Component
 public class KeycloakImportProvider {
-    private final ResourceLoader resourceLoader;
+    private final PathMatchingResourcePatternResolver patternResolver;
+    private final Comparator<File> fileComparator;
     private final Collection<ResourceExtractor> resourceExtractors;
     private final ImportConfigProperties importConfigProperties;
 
     private StringSubstitutor interpolator = null;
 
+    private static final Logger logger = LoggerFactory.getLogger(KeycloakImportProvider.class);
+
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
-    private static final JsonFactory JSON_FACTORY = new JsonFactory().setCodec(OBJECT_MAPPER);
-    private static final JsonFactory YAML_FACTORY = new YAMLFactory().setCodec(OBJECT_MAPPER);
-
     @Autowired
     public KeycloakImportProvider(
-            ResourceLoader resourceLoader,
+            Environment environment,
+            PathMatchingResourcePatternResolver patternResolver,
+            Comparator<File> fileComparator,
             Collection<ResourceExtractor> resourceExtractors,
             ImportConfigProperties importConfigProperties
     ) {
-        this.resourceLoader = resourceLoader;
+        this.patternResolver = patternResolver;
+        this.fileComparator = fileComparator;
         this.resourceExtractors = resourceExtractors;
         this.importConfigProperties = importConfigProperties;
 
@@ -74,7 +81,12 @@ public class KeycloakImportProvider {
             String prefix = importConfigProperties.getVarSubstitutionPrefix();
             String suffix = importConfigProperties.getVarSubstitutionSuffix();
 
+            StringLookup variableResolver = StringLookupFactory.INSTANCE.interpolatorStringLookup(
+                    StringLookupFactory.INSTANCE.functionStringLookup(environment::getProperty)
+            );
+
             this.interpolator = StringSubstitutor.createInterpolator()
+                    .setVariableResolver(variableResolver)
                     .setVariablePrefix(prefix)
                     .setVariableSuffix(suffix)
                     .setEnableSubstitutionInVariables(importConfigProperties.isVarSubstitutionInVariables())
@@ -86,40 +98,92 @@ public class KeycloakImportProvider {
     public KeycloakImport get() {
         KeycloakImport keycloakImport;
 
-        String importFilePath = importConfigProperties.getPath();
-        keycloakImport = readFromPath(importFilePath);
+        Collection<String> path = importConfigProperties.getPath();
+        keycloakImport = readFromPaths(path.toArray(new String[0]));
 
         return keycloakImport;
     }
 
-    public KeycloakImport readFromPath(String path) {
-        // backward compatibility to correct a possible missing prefix "file:" in path
-        if (!ResourceUtils.isUrl(path)) {
-            path = "file:" + path;
+    public KeycloakImport readFromPaths(String... paths) {
+        Set<File> files = new LinkedHashSet<>();
+        for (String path : paths) {
+            // backward compatibility to correct a possible missing prefix "file:" in path
+
+            if (!ResourceUtils.isUrl(path)) {
+                path = "file:" + path;
+            }
+
+            Resource[] resources;
+
+            try {
+                resources = this.patternResolver.getResources(path);
+            } catch (IOException e) {
+                throw new InvalidImportException("import.path does not exists: " + path, e);
+            }
+
+            boolean found = false;
+            for (Resource resource : resources) {
+                Optional<ResourceExtractor> maybeMatchingExtractor = resourceExtractors.stream()
+                        .filter(r -> {
+                            try {
+                                return r.canHandleResource(resource);
+                            } catch (IOException e) {
+                                return false;
+                            }
+                        }).findFirst();
+
+                if (maybeMatchingExtractor.isPresent()) {
+                    try {
+                        Collection<File> extractedFiles = maybeMatchingExtractor.get()
+                                .extract(resource)
+                                .stream()
+                                .map(de.adorsys.keycloak.config.provider.FileUtils::relativize)
+                                .collect(Collectors.toList());
+
+                        files.addAll(extractedFiles);
+                    } catch (IOException e) {
+                        throw new InvalidImportException("import.path does not exists: " + path, e);
+                    }
+
+                    found = true;
+                }
+            }
+
+            if (!found) {
+                throw new InvalidImportException("No resource extractor found to handle config property import.path=" + path
+                        + "! Check your settings.");
+            }
         }
 
-        Resource resource = resourceLoader.getResource(path);
-        Optional<ResourceExtractor> maybeMatchingExtractor = resourceExtractors.stream()
-                .filter(r -> {
-                    try {
-                        return r.canHandleResource(resource);
-                    } catch (IOException e) {
+        Stream<File> filesStream = files.stream();
+
+        Collection<String> excludes = this.importConfigProperties.getExclude();
+        if (excludes != null && !excludes.isEmpty()) {
+            PathMatcher pathMatcher = this.patternResolver.getPathMatcher();
+
+            for (String exclude : excludes) {
+                filesStream = filesStream.filter(f -> {
+                    boolean match = pathMatcher.match(exclude, f.getPath());
+                    if (match) {
+                        logger.debug("Excluding resource file '{}' (match {})", f.getPath(), exclude);
                         return false;
                     }
-                }).findFirst();
-
-        if (!maybeMatchingExtractor.isPresent()) {
-            throw new InvalidImportException("No resource extractor found to handle config property import.path=" + path + "! Check your settings.");
+                    return true;
+                });
+            }
         }
 
-        try {
-            return readRealmImportsFromResource(maybeMatchingExtractor.get().extract(resource));
-        } catch (IOException e) {
-            throw new InvalidImportException("import.path does not exists: " + path, e);
-        }
+        List<File> sortedFiles = filesStream
+                .map(File::getAbsoluteFile)
+                .sorted(this.fileComparator)
+                .collect(Collectors.toList());
+
+        logger.info("{} configuration files found.", sortedFiles.size());
+
+        return readRealmImportsFromResource(sortedFiles);
     }
 
-    private KeycloakImport readRealmImportsFromResource(Collection<File> importResources) {
+    private KeycloakImport readRealmImportsFromResource(List<File> importResources) {
         Map<String, List<RealmImport>> realmImports = importResources.stream()
                 // https://stackoverflow.com/a/52130074/8087167
                 .collect(Collectors.toMap(
@@ -128,7 +192,7 @@ public class KeycloakImportProvider {
                         (u, v) -> {
                             throw new IllegalStateException(String.format("Duplicate key %s", u));
                         },
-                        TreeMap::new
+                        LinkedHashMap::new
                 ));
         return new KeycloakImport(realmImports);
     }
@@ -145,6 +209,8 @@ public class KeycloakImportProvider {
     private List<RealmImport> readRealmImport(File importFile) {
         String importConfig;
 
+        logger.info("Loading file '{}'", importFile);
+
         try {
             importConfig = FileUtils.readFileToString(importFile, StandardCharsets.UTF_8);
         } catch (IOException e) {
@@ -159,24 +225,24 @@ public class KeycloakImportProvider {
 
         ImportConfigProperties.ImportFileType fileType = importConfigProperties.getFileType();
 
-        JsonFactory factory;
+        List<RealmImport> realmImports;
 
         switch (fileType) {
             case YAML:
-                factory = YAML_FACTORY;
+                realmImports = readYaml(importConfig);
                 break;
             case JSON:
-                factory = JSON_FACTORY;
+                realmImports = readJson(importConfig);
                 break;
             case AUTO:
                 String fileExt = FilenameUtils.getExtension(importFile.getName());
                 switch (fileExt) {
                     case "yaml":
                     case "yml":
-                        factory = YAML_FACTORY;
+                        realmImports = readYaml(importConfig);
                         break;
                     case "json":
-                        factory = JSON_FACTORY;
+                        realmImports = readJson(importConfig);
                         break;
                     default:
                         throw new InvalidImportException("Unknown file extension: " + fileExt);
@@ -186,16 +252,35 @@ public class KeycloakImportProvider {
                 throw new InvalidImportException("Unknown import file type: " + fileType);
         }
 
+        realmImports.forEach(realmImport -> realmImport.setChecksum(checksum));
+
+        return realmImports;
+    }
+
+    private List<RealmImport> readJson(String data) {
         try {
-            JsonParser parser = factory.createParser(importConfig);
-            List<RealmImport> realmImports = OBJECT_MAPPER.readValues(parser, new TypeReference<RealmImport>() {
-            }).readAll();
+            RealmImport realmImport = OBJECT_MAPPER.readValue(data, RealmImport.class);
 
-            realmImports.forEach(realmImport -> realmImport.setChecksum(checksum));
-
-            return realmImports;
+            return Collections.singletonList(realmImport);
         } catch (IOException e) {
             throw new InvalidImportException(e);
         }
+    }
+
+    private List<RealmImport> readYaml(String data) {
+        List<RealmImport> realmImports = new ArrayList<>();
+
+        Yaml yaml = new Yaml();
+        Iterable<Object> yamlDocuments = yaml.loadAll(data);
+
+        try {
+            for (Object yamlDocument : yamlDocuments) {
+                realmImports.add(OBJECT_MAPPER.convertValue(yamlDocument, RealmImport.class));
+            }
+        } catch (IllegalArgumentException e) {
+            throw new InvalidImportException(e.getMessage());
+        }
+
+        return realmImports;
     }
 }

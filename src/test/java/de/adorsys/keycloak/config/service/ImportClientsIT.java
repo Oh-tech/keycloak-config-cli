@@ -26,12 +26,16 @@ import de.adorsys.keycloak.config.exception.ImportProcessingException;
 import de.adorsys.keycloak.config.exception.KeycloakRepositoryException;
 import de.adorsys.keycloak.config.model.RealmImport;
 import de.adorsys.keycloak.config.properties.ImportConfigProperties;
+import de.adorsys.keycloak.config.properties.KeycloakConfigProperties;
 import de.adorsys.keycloak.config.util.VersionUtil;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
+import org.keycloak.authorization.client.AuthzClient;
+import org.keycloak.authorization.client.Configuration;
 import org.keycloak.representations.idm.*;
 import org.keycloak.representations.idm.authorization.*;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -50,6 +54,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class ImportClientsIT extends AbstractImportTest {
     private static final String REALM_NAME = "realmWithClients";
     private static final String REALM_AUTH_FLOW_NAME = "realmWithClientsForAuthFlowOverrides";
+
+    @Autowired
+    private KeycloakConfigProperties properties;
 
     ImportClientsIT() {
         this.resourcePath = "import-files/clients";
@@ -523,18 +530,20 @@ class ImportClientsIT extends AbstractImportTest {
         thrown = assertThrows(ImportProcessingException.class, () -> realmImportService.doImport(foundImport2));
         assertThat(thrown.getMessage(), is("Unsupported authorization settings for client 'auth-moped-client' in realm 'realmWithClients': serviceAccountsEnabled must be 'true'."));
 
+        /*
         RealmImport foundImport3 = getFirstImport("10.3_update_realm__raise_error_update_authorization_client_bearer_only.json");
         thrown = assertThrows(ImportProcessingException.class, () -> realmImportService.doImport(foundImport3));
-        assertThat(thrown.getMessage(), is("Unsupported authorization settings for client 'realm-management' in realm 'realmWithClients': client must be confidential."));
+        assertThat(thrown.getMessage(), is("Unsupported authorization settings for client 'auth-moped-client' in realm 'realmWithClients': client must be confidential."));
 
         doImport("10.4.1_update_realm__raise_error_update_authorization_client_public.json");
         RealmImport foundImport4 = getFirstImport("10.4.2_update_realm__raise_error_update_authorization_client_public.json");
         thrown = assertThrows(ImportProcessingException.class, () -> realmImportService.doImport(foundImport4));
-        assertThat(thrown.getMessage(), is("Unsupported authorization settings for client 'realm-management' in realm 'realmWithClients': client must be confidential."));
+        assertThat(thrown.getMessage(), is("Unsupported authorization settings for client '${client_realm-management}' in realm 'realmWithClients': client must be confidential."));
 
         RealmImport foundImport5 = getFirstImport("10.5_update_realm__raise_error_update_authorization_without_service_account_enabled.json");
         thrown = assertThrows(ImportProcessingException.class, () -> realmImportService.doImport(foundImport5));
-        assertThat(thrown.getMessage(), is("Unsupported authorization settings for client 'realm-management' in realm 'realmWithClients': serviceAccountsEnabled must be 'true'."));
+        assertThat(thrown.getMessage(), is("Unsupported authorization settings for client '${client_realm-management}' in realm 'realmWithClients': serviceAccountsEnabled must be 'true'."));
+        */
     }
 
     @Test
@@ -575,7 +584,7 @@ class ImportClientsIT extends AbstractImportTest {
 
         ResourceServerRepresentation authorizationSettings = client.getAuthorizationSettings();
         assertThat(authorizationSettings.getPolicyEnforcementMode(), is(PolicyEnforcementMode.ENFORCING));
-        assertThat(authorizationSettings.isAllowRemoteResourceManagement(), is(false));
+        assertThat(authorizationSettings.isAllowRemoteResourceManagement(), is(true));
         assertThat(authorizationSettings.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
 
         List<ResourceRepresentation> authorizationSettingsResources = authorizationSettings.getResources();
@@ -672,11 +681,54 @@ class ImportClientsIT extends AbstractImportTest {
                 new ScopeRepresentation("urn:servlet-authz:page:main:actionForAdmin"),
                 new ScopeRepresentation("urn:servlet-authz:page:main:actionForUser")
         ));
+
+        client = getClientByName(realm, "missing-id-client");
+        assertThat(client.getName(), is("missing-id-client"));
+        assertThat(client.getClientId(), not(emptyString()));
+        assertThat(client.getDescription(), is("Missing-Id-Client"));
+        assertThat(client.isEnabled(), is(true));
+        assertThat(client.getClientAuthenticatorType(), is("client-secret"));
+        assertThat(client.isServiceAccountsEnabled(), is(true));
+        assertThat(client.getAuthorizationServicesEnabled(), is(true));
+
+        authorizationSettings = client.getAuthorizationSettings();
+        assertThat(authorizationSettings.getPolicyEnforcementMode(), is(PolicyEnforcementMode.ENFORCING));
+        assertThat(authorizationSettings.isAllowRemoteResourceManagement(), is(false));
+        assertThat(authorizationSettings.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
+
+        authorizationSettingsResources = authorizationSettings.getResources();
+        assertThat(authorizationSettingsResources, hasSize(1));
+
+        authorizationSettingsResource = getAuthorizationSettingsResource(authorizationSettingsResources, "Admin Resource");
+        assertThat(authorizationSettingsResource.getUris(), containsInAnyOrder("/protected/admin/*"));
+        assertThat(authorizationSettingsResource.getType(), is("http://servlet-authz/protected/admin"));
+        assertThat(authorizationSettingsResource.getScopes(), containsInAnyOrder(new ScopeRepresentation("urn:servlet-authz:protected:admin:access")));
+
+        authorizationSettingsPolicies = authorizationSettings.getPolicies();
+        authorizationSettingsPolicy = getAuthorizationPolicy(authorizationSettingsPolicies, "Any Admin Policy");
+        assertThat(authorizationSettingsPolicy.getDescription(), is("Defines that adminsitrators can do something"));
+        assertThat(authorizationSettingsPolicy.getType(), is("role"));
+        assertThat(authorizationSettingsPolicy.getLogic(), is(Logic.POSITIVE));
+        assertThat(authorizationSettingsPolicy.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
+        assertThat(authorizationSettingsPolicy.getConfig(), aMapWithSize(1));
+        assertThat(authorizationSettingsPolicy.getConfig(), hasEntry(equalTo("roles"), equalTo("[{\"id\":\"admin\",\"required\":false}]")));
+
+        assertThat(authorizationSettings.getScopes(), hasSize(1));
+        assertThat(authorizationSettings.getScopes(), containsInAnyOrder(
+                new ScopeRepresentation("urn:servlet-authz:protected:admin:access")
+        ));
     }
 
     @Test
     @Order(12)
     void shouldUpdateRealmUpdateAuthorization() throws IOException {
+        // https://github.com/adorsys/keycloak-config-cli/issues/641
+        ResourceRepresentation resource = new ResourceRepresentation();
+        resource.setName("Tweedl Social Service");
+        resource.setType("http://www.example.com/rsrcs/socialstream/140-compatible");
+        resource.setIconUri("http://www.example.com/icons/sharesocial.png");
+        createRemoteManagedClientResource(REALM_NAME, "auth-moped-client", "changed-special-client-secret", resource);
+
         doImport("12_update_realm__update_authorization.json");
 
         RealmRepresentation realm = keycloakProvider.getInstance().realm(REALM_NAME).partialExport(false, true);
@@ -716,7 +768,7 @@ class ImportClientsIT extends AbstractImportTest {
         assertThat(authorizationSettings.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
 
         List<ResourceRepresentation> authorizationSettingsResources = authorizationSettings.getResources();
-        assertThat(authorizationSettingsResources, hasSize(4));
+        assertThat(authorizationSettingsResources, hasSize(5));
 
         ResourceRepresentation authorizationSettingsResource;
         authorizationSettingsResource = getAuthorizationSettingsResource(authorizationSettingsResources, "Admin Resource");
@@ -733,7 +785,6 @@ class ImportClientsIT extends AbstractImportTest {
         assertThat(authorizationSettingsResource.getAttributes(), hasEntry(is("key"), contains("value")));
         assertThat(authorizationSettingsResource.getAttributes(), hasEntry(is("key2"), contains("value2")));
 
-
         authorizationSettingsResource = getAuthorizationSettingsResource(authorizationSettingsResources, "Premium Resource");
         assertThat(authorizationSettingsResource.getUris(), containsInAnyOrder("/protected/premium/*"));
         assertThat(authorizationSettingsResource.getType(), is("urn:servlet-authz:protected:resource"));
@@ -747,6 +798,12 @@ class ImportClientsIT extends AbstractImportTest {
                 new ScopeRepresentation("urn:servlet-authz:page:main:actionForAdmin"),
                 new ScopeRepresentation("urn:servlet-authz:page:main:actionForUser")
         ));
+
+        authorizationSettingsResource = getAuthorizationSettingsResource(authorizationSettingsResources, "Tweedl Social Service");
+        assertThat(authorizationSettingsResource.getUris(), empty());
+        assertThat(authorizationSettingsResource.getType(), is("http://www.example.com/rsrcs/socialstream/140-compatible"));
+        assertThat(authorizationSettingsResource.getIconUri(), is("http://www.example.com/icons/sharesocial.png"));
+        assertThat(authorizationSettingsResource.getScopes(), empty());
 
         List<PolicyRepresentation> authorizationSettingsPolicies = authorizationSettings.getPolicies();
         PolicyRepresentation authorizationSettingsPolicy;
@@ -844,6 +901,42 @@ class ImportClientsIT extends AbstractImportTest {
         assertThat(mopedAuthorizationSettings.getPolicyEnforcementMode(), is(PolicyEnforcementMode.PERMISSIVE));
         assertThat(mopedAuthorizationSettings.isAllowRemoteResourceManagement(), is(true));
         assertThat(mopedAuthorizationSettings.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
+
+        client = getClientByName(realm, "missing-id-client");
+        assertThat(client.getName(), is("missing-id-client"));
+        assertThat(client.getClientId(), not(emptyString()));
+        assertThat(client.getDescription(), is("Missing-Id-Client"));
+        assertThat(client.isEnabled(), is(true));
+        assertThat(client.getClientAuthenticatorType(), is("client-secret"));
+        assertThat(client.isServiceAccountsEnabled(), is(true));
+        assertThat(client.getAuthorizationServicesEnabled(), is(true));
+
+        authorizationSettings = client.getAuthorizationSettings();
+        assertThat(authorizationSettings.getPolicyEnforcementMode(), is(PolicyEnforcementMode.ENFORCING));
+        assertThat(authorizationSettings.isAllowRemoteResourceManagement(), is(true));
+        assertThat(authorizationSettings.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
+
+        authorizationSettingsResources = authorizationSettings.getResources();
+        assertThat(authorizationSettingsResources, hasSize(1));
+
+        authorizationSettingsResource = getAuthorizationSettingsResource(authorizationSettingsResources, "Admin Resource");
+        assertThat(authorizationSettingsResource.getUris(), containsInAnyOrder("/protected/admin/*"));
+        assertThat(authorizationSettingsResource.getType(), is("http://servlet-authz/protected/admin"));
+        assertThat(authorizationSettingsResource.getScopes(), containsInAnyOrder(new ScopeRepresentation("urn:servlet-authz:protected:user:access")));
+
+        authorizationSettingsPolicies = authorizationSettings.getPolicies();
+        authorizationSettingsPolicy = getAuthorizationPolicy(authorizationSettingsPolicies, "Any Admin Policy");
+        assertThat(authorizationSettingsPolicy.getDescription(), is("Defines that adminsitrators can do something"));
+        assertThat(authorizationSettingsPolicy.getType(), is("role"));
+        assertThat(authorizationSettingsPolicy.getLogic(), is(Logic.POSITIVE));
+        assertThat(authorizationSettingsPolicy.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
+        assertThat(authorizationSettingsPolicy.getConfig(), aMapWithSize(1));
+        assertThat(authorizationSettingsPolicy.getConfig(), hasEntry(equalTo("roles"), equalTo("[{\"id\":\"user\",\"required\":false}]")));
+
+        assertThat(authorizationSettings.getScopes(), hasSize(1));
+        assertThat(authorizationSettings.getScopes(), containsInAnyOrder(
+                new ScopeRepresentation("urn:servlet-authz:protected:user:access")
+        ));
     }
 
     @Test
@@ -888,7 +981,7 @@ class ImportClientsIT extends AbstractImportTest {
         assertThat(authorizationSettings.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
 
         List<ResourceRepresentation> authorizationSettingsResources = authorizationSettings.getResources();
-        assertThat(authorizationSettingsResources, hasSize(3));
+        assertThat(authorizationSettingsResources, hasSize(4));
 
         ResourceRepresentation authorizationSettingsResource;
         authorizationSettingsResource = getAuthorizationSettingsResource(authorizationSettingsResources, "Admin Resource");
@@ -908,6 +1001,12 @@ class ImportClientsIT extends AbstractImportTest {
                 new ScopeRepresentation("urn:servlet-authz:page:main:actionForPremiumUser"),
                 new ScopeRepresentation("urn:servlet-authz:page:main:actionForAdmin")
         ));
+
+        authorizationSettingsResource = getAuthorizationSettingsResource(authorizationSettingsResources, "Tweedl Social Service");
+        assertThat(authorizationSettingsResource.getUris(), empty());
+        assertThat(authorizationSettingsResource.getType(), is("http://www.example.com/rsrcs/socialstream/140-compatible"));
+        assertThat(authorizationSettingsResource.getIconUri(), is("http://www.example.com/icons/sharesocial.png"));
+        assertThat(authorizationSettingsResource.getScopes(), empty());
 
         List<PolicyRepresentation> authorizationSettingsPolicies = authorizationSettings.getPolicies();
         PolicyRepresentation authorizationSettingsPolicy;
@@ -974,6 +1073,24 @@ class ImportClientsIT extends AbstractImportTest {
         ClientRepresentation mopedClient = getClientByName(realm, "moped-client");
         assertThat(mopedClient.isServiceAccountsEnabled(), is(false));
         assertThat(mopedClient.getAuthorizationSettings(), nullValue());
+
+        client = getClientByName(realm, "missing-id-client");
+        assertThat(client.getName(), is("missing-id-client"));
+        assertThat(client.getClientId(), not(emptyString()));
+        assertThat(client.getDescription(), is("Missing-Id-Client"));
+        assertThat(client.isEnabled(), is(true));
+        assertThat(client.getClientAuthenticatorType(), is("client-secret"));
+        assertThat(client.isServiceAccountsEnabled(), is(true));
+        assertThat(client.getAuthorizationServicesEnabled(), is(true));
+
+        authorizationSettings = client.getAuthorizationSettings();
+        assertThat(authorizationSettings.getPolicyEnforcementMode(), is(PolicyEnforcementMode.ENFORCING));
+        assertThat(authorizationSettings.isAllowRemoteResourceManagement(), is(true));
+        assertThat(authorizationSettings.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
+
+        assertThat(authorizationSettings.getResources(), hasSize(0));
+        assertThat(authorizationSettings.getPolicies(), hasSize(0));
+        assertThat(authorizationSettings.getScopes(), hasSize(0));
     }
 
     @Test
@@ -1402,6 +1519,459 @@ class ImportClientsIT extends AbstractImportTest {
     }
 
     @Test
+    @Order(41)
+    void shouldAddAuthzPoliciesForRealmManagement() throws IOException {
+        doImport("41_update_realm_add_authz_policy_realm-management.json");
+
+        String REALM_NAME = "realmWithClientsForAuthzGrantedPolicies";
+
+        RealmRepresentation realm = keycloakProvider.getInstance().realm(REALM_NAME).partialExport(true, true);
+        assertThat(realm.getRealm(), is(REALM_NAME));
+        assertThat(realm.isEnabled(), is(true));
+
+        ClientRepresentation client;
+        client = getClientByClientId(realm, "fine-grained-permission-client-id");
+        assertThat(client, notNullValue());
+        assertThat(client.getId(), is("50eadf70-6e80-4f1d-ba0d-85cafa3c1dc7"));
+        assertThat(client.getClientId(), is("fine-grained-permission-client-id"));
+        assertThat(client.isEnabled(), is(true));
+        assertThat(client.getClientAuthenticatorType(), is("client-secret"));
+        assertThat(client.isBearerOnly(), is(false));
+        assertThat(client.isConsentRequired(), is(false));
+        assertThat(client.isStandardFlowEnabled(), is(true));
+        assertThat(client.isImplicitFlowEnabled(), is(false));
+        assertThat(client.isDirectAccessGrantsEnabled(), is(true));
+        assertThat(client.isServiceAccountsEnabled(), is(false));
+        assertThat(client.isPublicClient(), is(true));
+        assertThat(client.getProtocol(), is("openid-connect"));
+
+        String clientFineGrainedPermissionId = client.getId();
+        assertThat(
+                keycloakProvider.getInstance().realm(REALM_NAME).clients().get(clientFineGrainedPermissionId).getPermissions().isEnabled(),
+                is(true)
+        );
+
+        client = getClientByClientId(realm, "realm-management");
+        assertThat(client, notNullValue());
+        assertThat(client.getClientId(), is("realm-management"));
+        assertThat(client.getName(), is("${client_realm-management}"));
+        assertThat(client.isSurrogateAuthRequired(), is(false));
+        assertThat(client.isEnabled(), is(true));
+        assertThat(client.isAlwaysDisplayInConsole(), is(false));
+        assertThat(client.getClientAuthenticatorType(), is("client-secret"));
+        assertThat(client.getRedirectUris(), empty());
+        assertThat(client.getWebOrigins(), empty());
+        assertThat(client.getNotBefore(), is(0));
+        assertThat(client.isBearerOnly(), is(true));
+        assertThat(client.isConsentRequired(), is(false));
+        assertThat(client.isStandardFlowEnabled(), is(true));
+        assertThat(client.isImplicitFlowEnabled(), is(false));
+        assertThat(client.isDirectAccessGrantsEnabled(), is(false));
+        assertThat(client.isServiceAccountsEnabled(), is(false));
+        assertThat(client.isServiceAccountsEnabled(), is(false));
+        assertThat(client.getAuthorizationServicesEnabled(), is(true));
+        assertThat(client.isFrontchannelLogout(), is(false));
+        assertThat(client.getProtocol(), is("openid-connect"));
+        assertThat(client.getAttributes(), anEmptyMap());
+        assertThat(client.getAuthenticationFlowBindingOverrides(), anEmptyMap());
+        assertThat(client.isFullScopeAllowed(), is(false));
+        assertThat(client.getNodeReRegistrationTimeout(), is(0));
+        assertThat(client.getDefaultClientScopes(), containsInAnyOrder("web-origins", "profile", "roles", "email"));
+        assertThat(client.getOptionalClientScopes(), containsInAnyOrder("address", "phone", "offline_access", "microprofile-jwt"));
+
+        String[] clientsIds = new String[]{clientFineGrainedPermissionId};
+        String[] scopeNames = new String[]{
+                "manage",
+                "view",
+                "map-roles",
+                "map-roles-client-scope",
+                "map-roles-composite",
+                "configure",
+                "token-exchange",
+                "keycloak-config-cli-1"
+        };
+
+        ResourceServerRepresentation authorizationSettings = client.getAuthorizationSettings();
+        assertThat(authorizationSettings.isAllowRemoteResourceManagement(), is(false));
+        assertThat(authorizationSettings.getPolicyEnforcementMode(), is(PolicyEnforcementMode.ENFORCING));
+        assertThat(authorizationSettings.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
+
+        List<ResourceRepresentation> resources = authorizationSettings.getResources();
+        assertThat(resources, hasSize(1));
+
+        ResourceRepresentation resource;
+        resource = getAuthorizationSettingsResource(resources, "client.resource." + clientFineGrainedPermissionId);
+        assertThat(resource.getType(), is("Client"));
+        assertThat(resource.getOwnerManagedAccess(), is(false));
+        assertThat(resource.getScopes().stream().map(ScopeRepresentation::getName).collect(Collectors.toList()), containsInAnyOrder(scopeNames));
+
+        List<PolicyRepresentation> policies = authorizationSettings.getPolicies();
+
+        PolicyRepresentation policy;
+        policy = getAuthorizationPolicy(policies, "clientadmin-policy");
+        assertThat(policy.getType(), is("group"));
+        assertThat(policy.getLogic(), is(Logic.POSITIVE));
+        assertThat(policy.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
+        assertThat(policy.getConfig(), aMapWithSize(1));
+        assertThat(policy.getConfig(), hasEntry(equalTo("groups"), equalTo("[{\"path\":\"/client-admin-group\",\"extendChildren\":false}]")));
+
+        for (String clientsId : clientsIds) {
+            for (String scope : scopeNames) {
+                policy = getAuthorizationPolicy(policies, scope + ".permission.client." + clientsId);
+                assertThat(scope + ".permission.client." + clientsId, policy, notNullValue());
+                assertThat(policy.getType(), is("scope"));
+                assertThat(policy.getLogic(), is(Logic.POSITIVE));
+                assertThat(policy.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
+                assertThat(policy.getConfig(), hasEntry(equalTo("resources"), equalTo("[\"client.resource." + clientsId + "\"]")));
+                assertThat(policy.getConfig(), hasEntry(equalTo("scopes"), equalTo("[\"" + scope + "\"]")));
+
+                if (policy.getName().startsWith("configure.permission.client")) {
+                    assertThat(policy.getConfig(), hasEntry(equalTo("applyPolicies"), equalTo("[\"clientadmin-policy\"]")));
+                    assertThat(policy.getConfig(), aMapWithSize(3));
+                } else {
+                    assertThat(policy.getConfig(), aMapWithSize(2));
+                }
+            }
+        }
+        assertThat(policies, hasSize(1 + clientsIds.length * scopeNames.length));
+
+        assertThat(authorizationSettings.getScopes().stream().map(ScopeRepresentation::getName).collect(Collectors.toList()), containsInAnyOrder(scopeNames));
+    }
+
+    @Test
+    @Order(42)
+    void shouldUpdateAuthzPoliciesForRealmManagement() throws IOException {
+        doImport("42_update_realm_update_authz_policy_realm-management.json");
+
+        String REALM_NAME = "realmWithClientsForAuthzGrantedPolicies";
+
+        RealmRepresentation realm = keycloakProvider.getInstance().realm(REALM_NAME).partialExport(true, true);
+        assertThat(realm.getRealm(), is(REALM_NAME));
+        assertThat(realm.isEnabled(), is(true));
+
+        ClientRepresentation client;
+        client = getClientByClientId(realm, "fine-grained-permission-client-id");
+        assertThat(client, notNullValue());
+        assertThat(client.getId(), is("50eadf70-6e80-4f1d-ba0d-85cafa3c1dc7"));
+        assertThat(client.getClientId(), is("fine-grained-permission-client-id"));
+        assertThat(client.isEnabled(), is(true));
+        assertThat(client.getClientAuthenticatorType(), is("client-secret"));
+        assertThat(client.isBearerOnly(), is(false));
+        assertThat(client.isConsentRequired(), is(false));
+        assertThat(client.isStandardFlowEnabled(), is(true));
+        assertThat(client.isImplicitFlowEnabled(), is(false));
+        assertThat(client.isDirectAccessGrantsEnabled(), is(true));
+        assertThat(client.isServiceAccountsEnabled(), is(false));
+        assertThat(client.isPublicClient(), is(true));
+        assertThat(client.getProtocol(), is("openid-connect"));
+
+        String clientFineGrainedPermissionId = client.getId();
+        assertThat(
+                keycloakProvider.getInstance().realm(REALM_NAME).clients().get(clientFineGrainedPermissionId).getPermissions().isEnabled(),
+                is(true)
+        );
+
+
+        client = getClientByClientId(realm, "z-fine-grained-permission-client-without-id");
+        assertThat(client, notNullValue());
+        assertThat(client.getClientId(), is("z-fine-grained-permission-client-without-id"));
+        assertThat(client.isEnabled(), is(true));
+        assertThat(client.getClientAuthenticatorType(), is("client-secret"));
+        assertThat(client.isBearerOnly(), is(false));
+        assertThat(client.isConsentRequired(), is(false));
+        assertThat(client.isStandardFlowEnabled(), is(true));
+        assertThat(client.isImplicitFlowEnabled(), is(false));
+        assertThat(client.isDirectAccessGrantsEnabled(), is(true));
+        assertThat(client.isServiceAccountsEnabled(), is(false));
+        assertThat(client.isPublicClient(), is(true));
+        assertThat(client.getProtocol(), is("openid-connect"));
+
+        String clientZFineGrainedPermissionWithoutIdId = client.getId();
+        assertThat(
+                keycloakProvider.getInstance().realm(REALM_NAME).clients().get(clientZFineGrainedPermissionWithoutIdId).getPermissions().isEnabled(),
+                is(true)
+        );
+
+
+        client = getClientByClientId(realm, "realm-management");
+        assertThat(client, notNullValue());
+        assertThat(client.getClientId(), is("realm-management"));
+        assertThat(client.getName(), is("${client_realm-management}"));
+        assertThat(client.isSurrogateAuthRequired(), is(false));
+        assertThat(client.isEnabled(), is(true));
+        assertThat(client.isAlwaysDisplayInConsole(), is(false));
+        assertThat(client.getClientAuthenticatorType(), is("client-secret"));
+        assertThat(client.getRedirectUris(), empty());
+        assertThat(client.getWebOrigins(), empty());
+        assertThat(client.getNotBefore(), is(0));
+        assertThat(client.isBearerOnly(), is(true));
+        assertThat(client.isConsentRequired(), is(false));
+        assertThat(client.isStandardFlowEnabled(), is(true));
+        assertThat(client.isImplicitFlowEnabled(), is(false));
+        assertThat(client.isDirectAccessGrantsEnabled(), is(false));
+        assertThat(client.isServiceAccountsEnabled(), is(false));
+        assertThat(client.isServiceAccountsEnabled(), is(false));
+        assertThat(client.getAuthorizationServicesEnabled(), is(true));
+        assertThat(client.isFrontchannelLogout(), is(false));
+        assertThat(client.getProtocol(), is("openid-connect"));
+        assertThat(client.getAttributes(), anEmptyMap());
+        assertThat(client.getAuthenticationFlowBindingOverrides(), anEmptyMap());
+        assertThat(client.isFullScopeAllowed(), is(false));
+        assertThat(client.getNodeReRegistrationTimeout(), is(0));
+        assertThat(client.getDefaultClientScopes(), containsInAnyOrder("web-origins", "profile", "roles", "email"));
+        assertThat(client.getOptionalClientScopes(), containsInAnyOrder("address", "phone", "offline_access", "microprofile-jwt"));
+
+        String[] clientsIds = new String[]{clientFineGrainedPermissionId, clientZFineGrainedPermissionWithoutIdId};
+        String[] scopeNames = new String[]{
+                "manage",
+                "view",
+                "map-roles",
+                "map-roles-client-scope",
+                "map-roles-composite",
+                "configure",
+                "token-exchange",
+                "keycloak-config-cli-2"
+        };
+
+        ResourceServerRepresentation authorizationSettings = client.getAuthorizationSettings();
+        assertThat(authorizationSettings.isAllowRemoteResourceManagement(), is(false));
+        assertThat(authorizationSettings.getPolicyEnforcementMode(), is(PolicyEnforcementMode.ENFORCING));
+        assertThat(authorizationSettings.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
+
+        List<ResourceRepresentation> resources = authorizationSettings.getResources();
+        assertThat(resources, hasSize(2));
+
+        ResourceRepresentation resource;
+        resource = getAuthorizationSettingsResource(resources, "client.resource." + clientFineGrainedPermissionId);
+        assertThat(resource.getType(), is("Client"));
+        assertThat(resource.getOwnerManagedAccess(), is(false));
+        assertThat(resource.getScopes().stream().map(ScopeRepresentation::getName).collect(Collectors.toList()), containsInAnyOrder(scopeNames));
+
+        resource = getAuthorizationSettingsResource(resources, "client.resource." + clientZFineGrainedPermissionWithoutIdId);
+        assertThat(resource.getType(), is("Client"));
+        assertThat(resource.getOwnerManagedAccess(), is(false));
+        assertThat(resource.getScopes().stream().map(ScopeRepresentation::getName).collect(Collectors.toList()), containsInAnyOrder(scopeNames));
+
+        List<PolicyRepresentation> policies = authorizationSettings.getPolicies();
+
+        PolicyRepresentation policy;
+        policy = getAuthorizationPolicy(policies, "clientadmin-policy");
+        assertThat(policy.getType(), is("group"));
+        assertThat(policy.getLogic(), is(Logic.POSITIVE));
+        assertThat(policy.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
+        assertThat(policy.getConfig(), aMapWithSize(1));
+        assertThat(policy.getConfig(), hasEntry(equalTo("groups"), equalTo("[{\"path\":\"/client-admin-group\",\"extendChildren\":false}]")));
+
+        for (String clientsId : clientsIds) {
+            for (String scope : scopeNames) {
+                policy = getAuthorizationPolicy(policies, scope + ".permission.client." + clientsId);
+                assertThat(scope + ".permission.client." + clientsId, policy, notNullValue());
+                assertThat(policy.getType(), is("scope"));
+                assertThat(policy.getLogic(), is(Logic.POSITIVE));
+                assertThat(policy.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
+                assertThat(policy.getConfig(), hasEntry(equalTo("resources"), equalTo("[\"client.resource." + clientsId + "\"]")));
+                assertThat(policy.getConfig(), hasEntry(equalTo("scopes"), equalTo("[\"" + scope + "\"]")));
+
+                if (policy.getName().startsWith("configure.permission.client")) {
+                    assertThat(policy.getConfig(), hasEntry(equalTo("applyPolicies"), equalTo("[\"clientadmin-policy\"]")));
+                    assertThat(policy.getConfig(), aMapWithSize(3));
+                } else {
+                    assertThat(policy.getConfig(), aMapWithSize(2));
+                }
+            }
+        }
+        assertThat(policies, hasSize(1 + clientsIds.length * scopeNames.length));
+
+        List<String> scopes = authorizationSettings.getScopes().stream().map(ScopeRepresentation::getName).collect(Collectors.toList());
+        assertThat(scopes, containsInAnyOrder(scopeNames));
+    }
+
+    @Test
+    @Order(43)
+    void shouldRemoveClientAndAuthzPoliciesForRealmManagement() throws IOException {
+        doImport("43_update_realm_remove_client_and_authz_policy_realm-management.json");
+
+        String REALM_NAME = "realmWithClientsForAuthzGrantedPolicies";
+
+        RealmRepresentation realm = keycloakProvider.getInstance().realm(REALM_NAME).partialExport(true, true);
+        assertThat(realm.getRealm(), is(REALM_NAME));
+        assertThat(realm.isEnabled(), is(true));
+
+        ClientRepresentation client;
+        client = getClientByClientId(realm, "z-fine-grained-permission-client-without-id");
+        assertThat(client, notNullValue());
+        assertThat(client.getClientId(), is("z-fine-grained-permission-client-without-id"));
+        assertThat(client.isEnabled(), is(true));
+        assertThat(client.getClientAuthenticatorType(), is("client-secret"));
+        assertThat(client.isBearerOnly(), is(false));
+        assertThat(client.isConsentRequired(), is(false));
+        assertThat(client.isStandardFlowEnabled(), is(true));
+        assertThat(client.isImplicitFlowEnabled(), is(false));
+        assertThat(client.isDirectAccessGrantsEnabled(), is(true));
+        assertThat(client.isServiceAccountsEnabled(), is(false));
+        assertThat(client.isPublicClient(), is(true));
+        assertThat(client.getProtocol(), is("openid-connect"));
+
+        String clientZFineGrainedPermissionWithoutIdId = client.getId();
+        assertThat(
+                keycloakProvider.getInstance().realm(REALM_NAME).clients().get(clientZFineGrainedPermissionWithoutIdId).getPermissions().isEnabled(),
+                is(true)
+        );
+
+
+        client = getClientByClientId(realm, "realm-management");
+        assertThat(client, notNullValue());
+        assertThat(client.getClientId(), is("realm-management"));
+        assertThat(client.getName(), is("${client_realm-management}"));
+        assertThat(client.isSurrogateAuthRequired(), is(false));
+        assertThat(client.isEnabled(), is(true));
+        assertThat(client.isAlwaysDisplayInConsole(), is(false));
+        assertThat(client.getClientAuthenticatorType(), is("client-secret"));
+        assertThat(client.getRedirectUris(), empty());
+        assertThat(client.getWebOrigins(), empty());
+        assertThat(client.getNotBefore(), is(0));
+        assertThat(client.isBearerOnly(), is(true));
+        assertThat(client.isConsentRequired(), is(false));
+        assertThat(client.isStandardFlowEnabled(), is(true));
+        assertThat(client.isImplicitFlowEnabled(), is(false));
+        assertThat(client.isDirectAccessGrantsEnabled(), is(false));
+        assertThat(client.isServiceAccountsEnabled(), is(false));
+        assertThat(client.isServiceAccountsEnabled(), is(false));
+        assertThat(client.getAuthorizationServicesEnabled(), is(true));
+        assertThat(client.isFrontchannelLogout(), is(false));
+        assertThat(client.getProtocol(), is("openid-connect"));
+        assertThat(client.getAttributes(), anEmptyMap());
+        assertThat(client.getAuthenticationFlowBindingOverrides(), anEmptyMap());
+        assertThat(client.isFullScopeAllowed(), is(false));
+        assertThat(client.getNodeReRegistrationTimeout(), is(0));
+        assertThat(client.getDefaultClientScopes(), containsInAnyOrder("web-origins", "profile", "roles", "email"));
+        assertThat(client.getOptionalClientScopes(), containsInAnyOrder("address", "phone", "offline_access", "microprofile-jwt"));
+
+        String[] clientsIds = new String[]{clientZFineGrainedPermissionWithoutIdId};
+        String[] scopeNames = new String[]{
+                "manage",
+                "view",
+                "map-roles",
+                "map-roles-client-scope",
+                "map-roles-composite",
+                "configure",
+                "token-exchange",
+        };
+
+        ResourceServerRepresentation authorizationSettings = client.getAuthorizationSettings();
+        assertThat(authorizationSettings.isAllowRemoteResourceManagement(), is(false));
+        assertThat(authorizationSettings.getPolicyEnforcementMode(), is(PolicyEnforcementMode.ENFORCING));
+        assertThat(authorizationSettings.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
+
+        List<ResourceRepresentation> resources = authorizationSettings.getResources();
+        assertThat(resources, hasSize(1));
+
+        ResourceRepresentation resource;
+        resource = getAuthorizationSettingsResource(resources, "client.resource." + clientZFineGrainedPermissionWithoutIdId);
+        assertThat(resource.getType(), is("Client"));
+        assertThat(resource.getOwnerManagedAccess(), is(false));
+        assertThat(resource.getScopes().stream().map(ScopeRepresentation::getName).collect(Collectors.toList()), containsInAnyOrder(scopeNames));
+
+        List<PolicyRepresentation> policies = authorizationSettings.getPolicies();
+
+        PolicyRepresentation policy;
+
+        for (String clientsId : clientsIds) {
+            for (String scope : scopeNames) {
+                policy = getAuthorizationPolicy(policies, scope + ".permission.client." + clientsId);
+                assertThat(scope + ".permission.client." + clientsId, policy, notNullValue());
+                assertThat(policy.getType(), is("scope"));
+                assertThat(policy.getLogic(), is(Logic.POSITIVE));
+                assertThat(policy.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
+                assertThat(policy.getConfig(), hasEntry(equalTo("resources"), equalTo("[\"client.resource." + clientsId + "\"]")));
+                assertThat(policy.getConfig(), hasEntry(equalTo("scopes"), equalTo("[\"" + scope + "\"]")));
+                assertThat(policy.getConfig(), aMapWithSize(2));
+            }
+        }
+
+        assertThat(policies, hasSize(clientsIds.length * scopeNames.length));
+
+        List<String> scopes = authorizationSettings.getScopes().stream().map(ScopeRepresentation::getName).collect(Collectors.toList());
+        assertThat(scopes, containsInAnyOrder(scopeNames));
+    }
+
+    @Test
+    @Order(44)
+    void shouldRemoveAuthzPoliciesForRealmManagement() throws IOException {
+        doImport("44_update_realm_remove_authz_policy_realm-management.json");
+
+        String REALM_NAME = "realmWithClientsForAuthzGrantedPolicies";
+
+        RealmRepresentation realm = keycloakProvider.getInstance().realm(REALM_NAME).partialExport(true, true);
+        assertThat(realm.getRealm(), is(REALM_NAME));
+        assertThat(realm.isEnabled(), is(true));
+
+        ClientRepresentation client;
+        client = getClientByClientId(realm, "z-fine-grained-permission-client-without-id");
+        assertThat(client, notNullValue());
+        assertThat(client.getClientId(), is("z-fine-grained-permission-client-without-id"));
+        assertThat(client.isEnabled(), is(true));
+        assertThat(client.getClientAuthenticatorType(), is("client-secret"));
+        assertThat(client.isBearerOnly(), is(false));
+        assertThat(client.isConsentRequired(), is(false));
+        assertThat(client.isStandardFlowEnabled(), is(true));
+        assertThat(client.isImplicitFlowEnabled(), is(false));
+        assertThat(client.isDirectAccessGrantsEnabled(), is(true));
+        assertThat(client.isServiceAccountsEnabled(), is(false));
+        assertThat(client.isPublicClient(), is(true));
+        assertThat(client.getProtocol(), is("openid-connect"));
+
+        String clientZFineGrainedPermissionWithoutIdId = client.getId();
+        assertThat(
+                keycloakProvider.getInstance().realm(REALM_NAME).clients().get(clientZFineGrainedPermissionWithoutIdId).getPermissions().isEnabled(),
+                is(false)
+        );
+
+
+        client = getClientByClientId(realm, "realm-management");
+        assertThat(client, notNullValue());
+        assertThat(client.getClientId(), is("realm-management"));
+        assertThat(client.getName(), is("${client_realm-management}"));
+        assertThat(client.isSurrogateAuthRequired(), is(false));
+        assertThat(client.isEnabled(), is(true));
+        assertThat(client.isAlwaysDisplayInConsole(), is(false));
+        assertThat(client.getClientAuthenticatorType(), is("client-secret"));
+        assertThat(client.getRedirectUris(), empty());
+        assertThat(client.getWebOrigins(), empty());
+        assertThat(client.getNotBefore(), is(0));
+        assertThat(client.isBearerOnly(), is(true));
+        assertThat(client.isConsentRequired(), is(false));
+        assertThat(client.isStandardFlowEnabled(), is(true));
+        assertThat(client.isImplicitFlowEnabled(), is(false));
+        assertThat(client.isDirectAccessGrantsEnabled(), is(false));
+        assertThat(client.isServiceAccountsEnabled(), is(false));
+        assertThat(client.isServiceAccountsEnabled(), is(false));
+        assertThat(client.getAuthorizationServicesEnabled(), is(true));
+        assertThat(client.isFrontchannelLogout(), is(false));
+        assertThat(client.getProtocol(), is("openid-connect"));
+        assertThat(client.getAttributes(), anEmptyMap());
+        assertThat(client.getAuthenticationFlowBindingOverrides(), anEmptyMap());
+        assertThat(client.isFullScopeAllowed(), is(false));
+        assertThat(client.getNodeReRegistrationTimeout(), is(0));
+        assertThat(client.getDefaultClientScopes(), containsInAnyOrder("web-origins", "profile", "roles", "email"));
+        assertThat(client.getOptionalClientScopes(), containsInAnyOrder("address", "phone", "offline_access", "microprofile-jwt"));
+
+        ResourceServerRepresentation authorizationSettings = client.getAuthorizationSettings();
+        assertThat(authorizationSettings.isAllowRemoteResourceManagement(), is(false));
+        assertThat(authorizationSettings.getPolicyEnforcementMode(), is(PolicyEnforcementMode.ENFORCING));
+        assertThat(authorizationSettings.getDecisionStrategy(), is(DecisionStrategy.UNANIMOUS));
+
+        List<ResourceRepresentation> resources = authorizationSettings.getResources();
+        assertThat(resources, empty());
+
+        List<PolicyRepresentation> policies = authorizationSettings.getPolicies();
+        assertThat(policies, empty());
+
+        List<String> scopes = authorizationSettings.getScopes().stream().map(ScopeRepresentation::getName).collect(Collectors.toList());
+        assertThat(scopes, empty());
+    }
+
+    @Test
     @Order(71)
     void shouldAddClientWithAuthenticationFlowBindingOverrides() throws IOException {
         doImport("71_update_realm__add_client_with_auth-flow-overrides.json");
@@ -1566,6 +2136,7 @@ class ImportClientsIT extends AbstractImportTest {
 
     @Test
     @Order(91)
+    @DisabledIfSystemProperty(named = "keycloak.version", matches = "1[7].0.*", disabledReason = "https://github.com/keycloak/keycloak/issues/10176")
     void shouldNotUpdateRealmUpdateClientWithError() throws IOException {
         doImport("91.0_update_realm__try-to-update-client.json");
         RealmImport foundImport = getFirstImport("91.1_update_realm__try-to-update-client.json");
@@ -1684,5 +2255,16 @@ class ImportClientsIT extends AbstractImportTest {
                 .stream()
                 .filter(e -> e.getKey().startsWith(ImportConfigProperties.REALM_STATE_ATTRIBUTE_COMMON_PREFIX))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    private void createRemoteManagedClientResource(String realm, String clientId, String clientSecret, ResourceRepresentation resource) {
+        Configuration configuration = new Configuration();
+        configuration.setAuthServerUrl(properties.getUrl().toString());
+        configuration.setRealm(realm);
+        configuration.setResource(clientId);
+        configuration.setCredentials(Collections.singletonMap("secret", clientSecret));
+        AuthzClient authzClient = AuthzClient.create(configuration);
+
+        authzClient.protection().resource().create(resource);
     }
 }

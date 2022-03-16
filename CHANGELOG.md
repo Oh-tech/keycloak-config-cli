@@ -6,6 +6,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [4.8.1] - 2022-03-09
+
+### Fixed
+
+- Docker Image for Keycloak 14, 15, 16 contains the version for Keycloak 17
+
+## [4.8.0] - 2022-03-06
+
+### Added
+
+- Support for managing `Client Authorization Resources` like other resources by configuring `import.managed.client-authorization-resources=<full|no-delete>`. This prevents deletion of remote managed resources.
+- Support for managing fine granted authorization rules.
+
+### Changes
+
+- Compile keycloak-config-cli inside docker build to avoid the requirement to run maven before
+
+### Fixed
+
+- Manage  `Client Authorization` without define a `clientId` in import realm.
+
+## [4.7.0] - 2022-02-14
+
+### Added
+
+- Added Keycloak 17 support, drop Keycloak 13 support
+- Allow spring boot properties in string substitution.
+- Supports YAML anchors in realm import file
+
+### Fixed
+
+- 404 not found, if roles have nested composites
+
 ## [4.6.1] - 2022-01-17
 
 ### Fixed
@@ -53,7 +86,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Stale client level roles assignment on a user, if the client is not present in the `clientRoles` JSON object in the config file.
   The Keycloak default client roles (e.g. realm-management) will remain untouched though.
-
 
 ## [4.3.0] - 2021-09-28
 
@@ -123,6 +155,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   remove the role from a user, if this flag set to `true`.
 
 ### Fixed
+
 - Exclude `default-roles-$REALM` from user realm role removal
 
 ### Removed
@@ -133,9 +166,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [3.4.0] - 2021-05-12
 
 ### Added
+
 - Support for Keycloak 13
-  *Note*: If you get an error like `client already exists` or `java.lang.IllegalStateException: Session/EntityManager is closed`, it's not an error in keycloak-config-cli.
-  See https://issues.redhat.com/browse/KEYCLOAK-18035
+  _Note_: If you get an error like `client already exists` or `java.lang.IllegalStateException: Session/EntityManager is closed`, it's not an error in keycloak-config-cli. See https://issues.redhat.com/browse/KEYCLOAK-18035
 - Define custom var substitution prefix and suffix through `import.var-substitution-prefix` and `import.var-substitution-suffix`.
   This prevents conflicts with keycloak builtin variables.
   Default to `${` and `}` and will be changed to `$(` and `)`. in keycloak-config-cli 4.0.
@@ -143,11 +176,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Keycloak images additionally pushed to quay.io
 
 ### Fixed
+
 - Versions specific images of keycloak-config-cli are not exists with keycloak version variations.
 
 ## [3.3.1] - 2021-05-04
 
 ### Fixed
+
 - 409 Conflict on importing client role that already exists but not in state.
 
 ## [3.3.0] - 2021-04-24
@@ -158,6 +193,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Client secrets mapping on the client scopes with the `clientScopeMappings`.
 
 ### Fixed
+
 - Undetermined treatment of a client without the client id specified.
 - Provisioning of a client with service account enabled when the `registrationEmailAsUsername` flag for the realm is set to `true`.
 
@@ -222,9 +258,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Breaking
 
 - keycloak-config-cli does not auto append `/auth/` to the keycloak path.
-- Role and Clients are `fully managed` now. See: [docs/MANAGED.md](docs/MANAGED.md). *Take care while upgrade exist keycloak instances*. This upgrade
-  should be tested carefully on existing instances. If `import.state` is enabled, only roles and clients created by keycloak-config-cli will be
-  deleted. Set `--import.managed.role=no-delete` and `--import.managed.client=no-delete` will restore the keycloak-config-cli v2.x behavior.
+- Role and Clients are `fully managed` now. See: [docs/MANAGED.md](docs/MANAGED.md). _Take care while upgrade exist keycloak instances_. This upgrade should be tested carefully on existing instances. If `import.state` is enabled, only roles and clients created by keycloak-config-cli will be deleted. Set `--import.managed.role=no-delete` and `--import.managed.client=no-delete` will restore the keycloak-config-cli v2.x behavior.
 
 ### Added
 
@@ -297,7 +331,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
-- __DEPRECATION:__ Auto append `/auth` in server url.
+- **DEPRECATION:** Auto append `/auth` in server url.
 
 ### Fixed
 
@@ -522,7 +556,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 <!-- @formatter:off -->
 
-[Unreleased]: https://github.com/adorsys/keycloak-config-cli/compare/v4.6.1...HEAD
+[unreleased]: https://github.com/adorsys/keycloak-config-cli/compare/v4.7.0...HEAD
+[Unreleased]: https://github.com/adorsys/keycloak-config-cli/compare/v4.8.1...HEAD
+[4.8.1]: https://github.com/adorsys/keycloak-config-cli/compare/v4.8.0...v4.8.1
+[4.8.0]: https://github.com/adorsys/keycloak-config-cli/compare/v4.7.0...v4.8.0
+[4.7.0]: https://github.com/adorsys/keycloak-config-cli/compare/v4.6.1...v4.7.0
 [4.6.1]: https://github.com/adorsys/keycloak-config-cli/compare/v4.6.0...v4.6.1
 [4.6.0]: https://github.com/adorsys/keycloak-config-cli/compare/v4.5.0...v4.6.0
 [4.5.0]: https://github.com/adorsys/keycloak-config-cli/compare/v4.4.0...v4.5.0

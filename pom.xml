@@ -4,7 +4,7 @@
     <groupId>de.adorsys.keycloak</groupId>
     <artifactId>keycloak-config-cli</artifactId>
     <packaging>jar</packaging>
-    <version>4.6.2-SNAPSHOT</version>
+    <version>4.8.2-SNAPSHOT</version>
 
     <name>keycloak-config-cli</name>
     <url>https://github.com/adorsys/keycloak-config-cli</url>
@@ -52,18 +52,18 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <keycloak.version>16.1.0</keycloak.version>
+        <keycloak.version>17.0.0</keycloak.version>
 
         <checkstyle-plugin.version>3.1.2</checkstyle-plugin.version>
-        <checkstyle.version>9.2.1</checkstyle.version>
+        <checkstyle.version>9.3</checkstyle.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <commons-io.version>2.11.0</commons-io.version>
         <commons-text.version>1.9</commons-text.version>
         <failsafe.version>2.4.4</failsafe.version>
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
-        <jackson.version>2.13.1</jackson.version>
+        <jackson.version>2.13.2</jackson.version>
         <jacoco.version>0.8.7</jacoco.version>
-        <junit-pioneer.version>1.5.0</junit-pioneer.version>
+        <junit-pioneer.version>1.6.2</junit-pioneer.version>
         <junit5-system-exit.version>1.1.2</junit5-system-exit.version>
         <keepachangelog.version>2.1.1</keepachangelog.version>
         <license-plugin.version>2.0.0</license-plugin.version>
@@ -73,15 +73,15 @@
         <maven-replacer.version>1.5.3</maven-replacer.version>
         <maven-scm-plugin.version>1.12.2</maven-scm-plugin.version>
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
-        <mockserver.version>5.11.2</mockserver.version>
-        <pmd-plugin.version>3.15.0</pmd-plugin.version>
-        <pmd.version>6.41.0</pmd.version>
+        <mockserver.version>5.12.0</mockserver.version>
+        <pmd-plugin.version>3.16.0</pmd-plugin.version>
+        <pmd.version>6.43.0</pmd.version>
         <reproducible-build-maven-plugin.version>0.15</reproducible-build-maven-plugin.version>
         <resteasy.version>5.0.2.Final</resteasy.version>
         <spotbugs-plugin.version>4.5.3.0</spotbugs-plugin.version>
-        <spotbugs.version>4.5.3</spotbugs.version>
-        <testcontainers.version>1.16.2</testcontainers.version>
-        <unboundid-ldapsdk.version>6.0.3</unboundid-ldapsdk.version>
+        <spotbugs.version>4.6.0</spotbugs.version>
+        <testcontainers.version>1.16.3</testcontainers.version>
+        <unboundid-ldapsdk.version>6.0.4</unboundid-ldapsdk.version>
         <wiremock-jre8.version>2.27.2</wiremock-jre8.version>
 
         <sonar.projectKey>keycloak-config-cli</sonar.projectKey>
@@ -95,7 +95,8 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.6.2</version>
+        <version>2.6.4</version>
+        <relativePath/>
     </parent>
 
     <dependencyManagement>
@@ -132,8 +133,20 @@
 
             <dependency>
                 <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>${commons-text.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${commons-lang3.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>net.jodah</groupId>
+                <artifactId>failsafe</artifactId>
+                <version>${failsafe.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -195,13 +208,16 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-text</artifactId>
-            <version>${commons-text.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
         </dependency>
 
         <dependency>
             <groupId>net.jodah</groupId>
             <artifactId>failsafe</artifactId>
-            <version>${failsafe.version}</version>
         </dependency>
 
         <dependency>
@@ -210,8 +226,8 @@
         </dependency>
 
         <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-yaml</artifactId>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
         </dependency>
 
         <!-- JSON logging -->
@@ -233,6 +249,12 @@
                     <artifactId>junit-vintage-engine</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-authz-client</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -270,11 +292,6 @@
             <artifactId>mockserver-spring-test-listener</artifactId>
             <version>${mockserver.version}</version>
             <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
         </dependency>
 
         <dependency>
@@ -679,6 +696,18 @@
                     </releases>
                 </repository>
             </repositories>
+        </profile>
+        <profile>
+            <id>jdk17</id>
+            <activation>
+                <jdk>17</jdk>
+            </activation>
+            <properties>
+                <argLine>
+                    --add-exports=java.base/sun.security.x509=ALL-UNNAMED
+                    --add-exports=java.base/sun.security.util=ALL-UNNAMED
+                </argLine>
+            </properties>
         </profile>
     </profiles>
 </project>
