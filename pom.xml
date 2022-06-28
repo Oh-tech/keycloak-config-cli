@@ -1,10 +1,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.7.1</version>
+        <relativePath />
+    </parent>
+
     <groupId>de.adorsys.keycloak</groupId>
     <artifactId>keycloak-config-cli</artifactId>
     <packaging>jar</packaging>
-    <version>4.8.2-SNAPSHOT</version>
+    <version>5.2.2-SNAPSHOT</version>
 
     <name>keycloak-config-cli</name>
     <url>https://github.com/adorsys/keycloak-config-cli</url>
@@ -25,8 +32,8 @@
 
     <developers>
         <developer>
-            <name>Jan-Otto Kröpke</name>
-            <email>jan-otto.kroepke@adorsys.com</email>
+            <name>Stefan Nachtrab</name>
+            <email>stefan.nachtrab@adorsys.com</email>
             <roles>
                 <role>Maintainer</role>
             </roles>
@@ -48,40 +55,40 @@
     </issueManagement>
 
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>11</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <keycloak.version>17.0.0</keycloak.version>
+        <keycloak.version>18.0.1</keycloak.version>
 
         <checkstyle-plugin.version>3.1.2</checkstyle-plugin.version>
-        <checkstyle.version>9.3</checkstyle.version>
+        <checkstyle.version>10.0</checkstyle.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <commons-io.version>2.11.0</commons-io.version>
         <commons-text.version>1.9</commons-text.version>
         <failsafe.version>2.4.4</failsafe.version>
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
-        <jackson.version>2.13.2</jackson.version>
-        <jacoco.version>0.8.7</jacoco.version>
+        <jackson.version>2.13.3</jackson.version>
+        <jacoco.version>0.8.8</jacoco.version>
         <junit-pioneer.version>1.6.2</junit-pioneer.version>
         <junit5-system-exit.version>1.1.2</junit5-system-exit.version>
         <keepachangelog.version>2.1.1</keepachangelog.version>
         <license-plugin.version>2.0.0</license-plugin.version>
-        <logstash-logback-encoder.version>7.0.1</logstash-logback-encoder.version>
+        <logstash-logback-encoder.version>7.2</logstash-logback-encoder.version>
         <maven-failsafe-plugin.version>3.0.0-M5</maven-failsafe-plugin.version>
-        <maven-release-plugin.version>3.0.0-M5</maven-release-plugin.version>
+        <maven-release-plugin.version>3.0.0-M6</maven-release-plugin.version>
         <maven-replacer.version>1.5.3</maven-replacer.version>
-        <maven-scm-plugin.version>1.12.2</maven-scm-plugin.version>
+        <maven-scm-plugin.version>1.13.0</maven-scm-plugin.version>
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
-        <mockserver.version>5.12.0</mockserver.version>
-        <pmd-plugin.version>3.16.0</pmd-plugin.version>
-        <pmd.version>6.43.0</pmd.version>
+        <mockserver.version>5.13.2</mockserver.version>
+        <pmd-plugin.version>3.17.0</pmd-plugin.version>
+        <pmd.version>6.47.0</pmd.version>
         <reproducible-build-maven-plugin.version>0.15</reproducible-build-maven-plugin.version>
-        <resteasy.version>5.0.2.Final</resteasy.version>
-        <spotbugs-plugin.version>4.5.3.0</spotbugs-plugin.version>
+        <resteasy.version>5.0.3.Final</resteasy.version>
+        <spotbugs-plugin.version>4.7.0.0</spotbugs-plugin.version>
         <spotbugs.version>4.6.0</spotbugs.version>
-        <testcontainers.version>1.16.3</testcontainers.version>
-        <unboundid-ldapsdk.version>6.0.4</unboundid-ldapsdk.version>
+        <testcontainers.version>1.17.2</testcontainers.version>
+        <unboundid-ldapsdk.version>6.0.5</unboundid-ldapsdk.version>
         <wiremock-jre8.version>2.27.2</wiremock-jre8.version>
 
         <sonar.projectKey>keycloak-config-cli</sonar.projectKey>
@@ -90,14 +97,12 @@
 
         <release.signTag>true</release.signTag>
         <release.additionalArguments />
-    </properties>
 
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.6.4</version>
-        <relativePath/>
-    </parent>
+        <argLine>
+            --add-exports=java.base/sun.security.x509=ALL-UNNAMED
+            --add-exports=java.base/sun.security.util=ALL-UNNAMED
+        </argLine>
+    </properties>
 
     <dependencyManagement>
         <dependencies>
@@ -281,12 +286,7 @@
             <version>${junit-pioneer.version}</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.mock-server</groupId>
-            <artifactId>mockserver-junit-jupiter</artifactId>
-            <version>${mockserver.version}</version>
-            <scope>test</scope>
-        </dependency>
+
         <dependency>
             <groupId>org.mock-server</groupId>
             <artifactId>mockserver-spring-test-listener</artifactId>
@@ -475,6 +475,7 @@
                 <configuration>
                     <systemPropertyVariables>
                         <keycloak.version>${keycloak.version}</keycloak.version>
+                        <java.util.logging.config.file>src/test/resources/logging.properties</java.util.logging.config.file>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
@@ -682,32 +683,6 @@
                     </snapshots>
                 </repository>
             </repositories>
-        </profile>
-        <profile>
-            <id>jboss-repository</id>
-            <repositories>
-                <repository>
-                    <id>jboss-public-repository-group</id>
-                    <name>JBoss Public Repository Group</name>
-                    <url>https://repository.jboss.org/nexus/content/groups/public/</url>
-                    <layout>default</layout>
-                    <releases>
-                        <enabled>true</enabled>
-                    </releases>
-                </repository>
-            </repositories>
-        </profile>
-        <profile>
-            <id>jdk17</id>
-            <activation>
-                <jdk>17</jdk>
-            </activation>
-            <properties>
-                <argLine>
-                    --add-exports=java.base/sun.security.x509=ALL-UNNAMED
-                    --add-exports=java.base/sun.security.util=ALL-UNNAMED
-                </argLine>
-            </properties>
         </profile>
     </profiles>
 </project>

@@ -6,6 +6,80 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [5.2.1] - 2022-06-20
+
+### Added
+- Added latest Keycloak 18.0.1 library
+
+## [5.2.0] - 2022-05-06
+
+### Added
+- Added Keycloak 18 support
+
+## [5.1.0] - 2022-04-08
+
+### Added
+
+- Dump realm configuration on trace log level
+
+## [5.0.0] - 2022-03-25
+
+### Notes
+
+A lot of import properties are added over the years. this major release of keycloak will reorder all properties. You will find a translation table below.
+
+### Added
+
+- Support for managing fine-grained authorization rules with placeholders to reference identity providers by alias, realm role by name and groups by full path
+
+### Changed
+
+- Docker base images changed from `openjdk` to `eclipse-temurin`
+- Refactored import properties.
+    - `import.force=true` -> `import.cache.enabled=false`
+    - `import.cache-key` -> `import.cache.key`
+    - `import.path` -> `import.files.locations`
+    - `import.hidden-files` -> `import.files.include-hidden-files`
+    - `import.exclude` -> `import.files.excludes`
+    - `import.file-type` -> removed
+    - `import.state` -> `import.remote-state.enabled`
+    - `import.state-encryption-key` -> `import.remote-state.encryption-key`
+    - `import.state-encryption-salt` -> `import.remote-state.encryption-salt`
+    - `import.var-substitution` -> `import.var-substitution.enabled`
+    - `import.var-substitution-in-variables` -> `import.var-substitution.nested`
+    - `import.var-substitution-undefined-throws-exceptions` -> `import.var-substitution.undefined-is-error`
+    - `import.var-substitution-prefix` -> `import.var-substitution.prefix`
+    - `import.var-substitution-suffix` -> `import.var-substitution.suffix`
+    - `import.remove-default-role-from-user` -> `import.behaviors.remove-default-role-from-user`
+    - `import.skip-attributes-for-federated-user` -> `import.behaviors.skip-attributes-for-federated-user`
+    - `import.sync-user-federation` -> `import.behaviors.sync-user-federation`
+- Changed loading of directories
+    - `path/to/dir` -> `path/to/dir/*`
+- Changed loading of zip files
+    - `path/to/file.zip` -> `zip:file:path/to/file.zip!**/*`
+
+### Fixed
+
+- import path contains `..`
+
+### Removed
+
+- Java 8 Support
+- `customImport` property in json import.
+- Directory import. Use `dir/*` instead `dir/`
+- Support for zip files from http locations
+- `import.file-type`. Import files will always be parsed with YAML parser. JSON files are YAML compatible.
+
+## [4.9.0] - 2022-03-21
+
+### Added
+
+- Support for managing fine-grained authorization rules with placeholders to reference identity providers by alias, realm role by name and groups by full path
+
+### Changes
+
+- Remove `v` prefix docker image tags.
+
 ## [4.8.1] - 2022-03-09
 
 ### Fixed
@@ -17,7 +91,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 - Support for managing `Client Authorization Resources` like other resources by configuring `import.managed.client-authorization-resources=<full|no-delete>`. This prevents deletion of remote managed resources.
-- Support for managing fine granted authorization rules.
+- Support for managing fine granted authorization rules with placeholders to reference clients by client id.
 
 ### Changes
 
@@ -136,7 +210,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [4.0.0] - 2021-06-18
 
-## Breaking
+### Breaking
 
 - New keycloak support policy: keycloak-config-cli will officially support the 4 latest keycloak versions. In the future, if a new keycloak version is
   out, the oldest version will be removed without bump the major version of keycloak-config-cli
@@ -556,8 +630,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 <!-- @formatter:off -->
 
-[unreleased]: https://github.com/adorsys/keycloak-config-cli/compare/v4.7.0...HEAD
-[Unreleased]: https://github.com/adorsys/keycloak-config-cli/compare/v4.8.1...HEAD
+[Unreleased]: https://github.com/adorsys/keycloak-config-cli/compare/v5.2.1...HEAD
+[5.2.1]: https://github.com/adorsys/keycloak-config-cli/compare/v5.2.0...v5.2.1
+[5.2.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.1.0...v5.2.0
+[5.1.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.0.0...v5.1.0
+[5.0.0]: https://github.com/adorsys/keycloak-config-cli/compare/v4.9.0...v5.0.0
+[4.9.0]: https://github.com/adorsys/keycloak-config-cli/compare/v4.8.1...v4.9.0
 [4.8.1]: https://github.com/adorsys/keycloak-config-cli/compare/v4.8.0...v4.8.1
 [4.8.0]: https://github.com/adorsys/keycloak-config-cli/compare/v4.7.0...v4.8.0
 [4.7.0]: https://github.com/adorsys/keycloak-config-cli/compare/v4.6.1...v4.7.0
@@ -569,8 +647,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [4.2.0]: https://github.com/adorsys/keycloak-config-cli/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/adorsys/keycloak-config-cli/compare/v4.0.1...v4.1.0
 [4.0.1]: https://github.com/adorsys/keycloak-config-cli/compare/v4.0.0...v4.0.1
-[4.0.0]: https://github.com/adorsys/keycloak-config-cli/compare/vBreaking...v4.0.0
-[Breaking]: https://github.com/adorsys/keycloak-config-cli/compare/v3.4.0...vBreaking
+[4.0.0]: https://github.com/adorsys/keycloak-config-cli/compare/v3.4.0...v4.0.0
 [3.4.0]: https://github.com/adorsys/keycloak-config-cli/compare/v3.3.1...v3.4.0
 [3.3.1]: https://github.com/adorsys/keycloak-config-cli/compare/v3.3.0...v3.3.1
 [3.3.0]: https://github.com/adorsys/keycloak-config-cli/compare/v3.2.0...v3.3.0

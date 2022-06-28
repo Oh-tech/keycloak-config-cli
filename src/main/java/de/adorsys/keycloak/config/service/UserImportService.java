@@ -42,7 +42,7 @@ public class UserImportService {
     private static final Logger logger = LoggerFactory.getLogger(UserImportService.class);
 
     private static final String[] IGNORED_PROPERTIES_FOR_UPDATE = {"realmRoles", "clientRoles"};
-    private static final String INITIAL_PASSWORD_USER_LABEL = "initial";
+    private static final String USER_LABEL_FOR_INITIAL_CREDENTIAL = "initial";
 
     private final RealmRepository realmRepository;
     private final UserRepository userRepository;
@@ -139,7 +139,7 @@ public class UserImportService {
             UserRepresentation patchedUser = CloneUtil
                     .patch(existingUser, userToImport, IGNORED_PROPERTIES_FOR_UPDATE);
 
-            if (importConfigProperties.isSkipAttributesForFederatedUser() && patchedUser.getFederationLink() != null) {
+            if (importConfigProperties.getBehaviors().isSkipAttributesForFederatedUser() && patchedUser.getFederationLink() != null) {
                 patchedUser.setAttributes(null);
             } else if (existingUser.getAttributes() != null && userToImport.getAttributes() != null) {
                 patchedUser.setAttributes(userToImport.getAttributes());
@@ -148,7 +148,9 @@ public class UserImportService {
             if (patchedUser.getCredentials() != null) {
                 // do not override password, if userLabel is set "initial"
                 List<CredentialRepresentation> userCredentials = patchedUser.getCredentials().stream()
-                        .filter(credentialRepresentation -> !Objects.equals(credentialRepresentation.getUserLabel(), INITIAL_PASSWORD_USER_LABEL))
+                        .filter(credentialRepresentation -> !Objects.equals(
+                                credentialRepresentation.getUserLabel(), USER_LABEL_FOR_INITIAL_CREDENTIAL
+                        ))
                         .collect(Collectors.toList());
                 patchedUser.setCredentials(userCredentials);
             }
@@ -237,7 +239,7 @@ public class UserImportService {
 
         private void handleRolesToBeRemoved(List<String> usersRealmLevelRolesToUpdate, List<String> existingUsersRealmLevelRoles) {
             List<String> rolesToDelete = searchForMissing(existingUsersRealmLevelRoles, usersRealmLevelRolesToUpdate);
-            if (!importConfigProperties.isRemoveDefaultRoleFromUser()) {
+            if (!importConfigProperties.getBehaviors().isRemoveDefaultRoleFromUser()) {
                 rolesToDelete.remove("default-roles-" + realmName.toLowerCase());
             }
 

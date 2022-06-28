@@ -20,7 +20,7 @@
 
 package de.adorsys.keycloak.config.service;
 
-import de.adorsys.keycloak.config.AbstractImportTest;
+import de.adorsys.keycloak.config.AbstractImportIT;
 import de.adorsys.keycloak.config.exception.ImportProcessingException;
 import de.adorsys.keycloak.config.model.RealmImport;
 import org.junit.jupiter.api.Order;
@@ -48,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
         "import.managed.component=full"
 })
 @SuppressWarnings({"java:S5961", "java:S5976", "SameParameterValue", "CommentedOutCode"})
-class ImportComponentsIT extends AbstractImportTest {
+class ImportComponentsIT extends AbstractImportIT {
     private static final String REALM_NAME = "realmWithComponents";
 
     ImportComponentsIT() {
@@ -527,7 +527,7 @@ class ImportComponentsIT extends AbstractImportTest {
 
     /*
     @Test
-    @Disabled("subComponent will be a empty map instead a null value. subComponent will deleted instead skipped")
+    @Disabled("subComponent will be an empty map instead a null value. subComponent will deleted instead skipped")
     @Order(9)
     void shouldUpdateComponentSkipSubComponent() throws IOException {
         doImport("09_update_realm__update_component_skip_subcomponent.json");
@@ -698,7 +698,7 @@ class ImportComponentsIT extends AbstractImportTest {
 
     @Test
     @Order(12)
-    @DisabledIfSystemProperty(named = "keycloak.version", matches = "1[7].0.*", disabledReason = "https://github.com/keycloak/keycloak/issues/10176")
+    @DisabledIfSystemProperty(named = "keycloak.version", matches = "17.0.0", disabledReason = "https://github.com/keycloak/keycloak/issues/10176")
     void shouldNotCreateComponents() throws IOException {
         RealmImport foundImport = getFirstImport("12_update_realm__try-to-create-component.json");
 

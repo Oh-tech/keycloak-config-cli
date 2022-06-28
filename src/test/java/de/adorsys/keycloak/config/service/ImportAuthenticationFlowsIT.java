@@ -20,7 +20,7 @@
 
 package de.adorsys.keycloak.config.service;
 
-import de.adorsys.keycloak.config.AbstractImportTest;
+import de.adorsys.keycloak.config.AbstractImportIT;
 import de.adorsys.keycloak.config.exception.ImportProcessingException;
 import de.adorsys.keycloak.config.exception.InvalidImportException;
 import de.adorsys.keycloak.config.model.RealmImport;
@@ -42,7 +42,7 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SuppressWarnings({"java:S5961", "java:S5976", "deprecation"})
-class ImportAuthenticationFlowsIT extends AbstractImportTest {
+class ImportAuthenticationFlowsIT extends AbstractImportIT {
     private static final String REALM_NAME = "realmWithFlow";
 
     ImportAuthenticationFlowsIT() {
@@ -636,7 +636,7 @@ class ImportAuthenticationFlowsIT extends AbstractImportTest {
 
     @Test
     @Order(27)
-    @DisabledIfSystemProperty(named = "keycloak.version", matches = "1[7].0.*", disabledReason = "https://github.com/keycloak/keycloak/issues/10176")
+    @DisabledIfSystemProperty(named = "keycloak.version", matches = "import.files.locations*", disabledReason = "https://github.com/keycloak/keycloak/issues/10176")
     void shouldNotUpdateSubFlowWithPseudoId() throws IOException {
         RealmImport foundImport = getFirstImport("27_update_realm__try-to-update-non-top-level-flow-with-pseudo-id.json");
 
@@ -666,7 +666,7 @@ class ImportAuthenticationFlowsIT extends AbstractImportTest {
 
     @Test
     @Order(29)
-    @DisabledIfSystemProperty(named = "keycloak.version", matches = "1[7].0.*", disabledReason = "https://github.com/keycloak/keycloak/issues/10176")
+    @DisabledIfSystemProperty(named = "keycloak.version", matches = "import.files.locations*", disabledReason = "https://github.com/keycloak/keycloak/issues/10176")
     void shouldNotUpdateInvalidTopLevelFlow() throws IOException {
         RealmImport foundImport = getFirstImport("29_update_realm__try-to-update-invalid-top-level-flow.json");
 
@@ -875,7 +875,7 @@ class ImportAuthenticationFlowsIT extends AbstractImportTest {
 
     @Test
     @Order(46)
-    @DisabledIfSystemProperty(named = "keycloak.version", matches = "1[7].0.*", disabledReason = "https://github.com/keycloak/keycloak/issues/10176")
+    @DisabledIfSystemProperty(named = "keycloak.version", matches = "17.0.0", disabledReason = "https://github.com/keycloak/keycloak/issues/10176")
     void shouldNotCreateBuiltInFlow() throws IOException {
         RealmImport foundImport = getFirstImport("46_update_realm__try-to-create-builtin-flow.json");
 
