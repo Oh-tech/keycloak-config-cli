@@ -54,6 +54,7 @@ import static org.hamcrest.Matchers.is;
         "import.cache.enabled=false",
         "import.cache.key=custom",
         "import.remote-state.enabled=false",
+        "import.remote-state.compact=false",
         "import.remote-state.encryption-key=password",
         "import.remote-state.encryption-salt=0123456789ABCDEFabcdef",
         "import.managed.authentication-flow=no-delete",
@@ -94,6 +95,7 @@ class ImportConfigPropertiesTest {
         assertThat(properties.getCache().isEnabled(), is(false));
         assertThat(properties.getCache().getKey(), is("custom"));
         assertThat(properties.getRemoteState().isEnabled(), is(false));
+        assertThat(properties.getRemoteState().isCompact(), is(false));
         assertThat(properties.getRemoteState().getEncryptionKey(), is("password"));
         assertThat(properties.getRemoteState().getEncryptionSalt(), is("0123456789ABCDEFabcdef"));
         assertThat(properties.getManaged().getAuthenticationFlow(), is(ImportManagedPropertiesValues.NO_DELETE));

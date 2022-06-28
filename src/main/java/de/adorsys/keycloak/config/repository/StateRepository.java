@@ -121,7 +121,7 @@ public class StateRepository {
 
         String state = String.join("", stateValues);
 
-        if (this.importConfigProperties.isCompactState()) {
+        if (CompactStringsUtil.isCompressed(state)) {
             state = CompactStringsUtil.decompress(state);
         }
 
@@ -131,11 +131,6 @@ public class StateRepository {
                     this.importConfigProperties.getRemoteState().getEncryptionKey(),
                     this.importConfigProperties.getRemoteState().getEncryptionSalt()
             );
-        }
-
-        // Check if compressed state was enabled previously.
-        if (!this.importConfigProperties.isCompactState() && CompactStringsUtil.isBase64(state)) {
-            state = CompactStringsUtil.decompress(state);
         }
 
         return fromJson(state);
@@ -177,7 +172,7 @@ public class StateRepository {
             );
         }
 
-        if (this.importConfigProperties.isCompactState()) {
+        if (this.importConfigProperties.getRemoteState().isCompact()) {
             valuesAsString = CompactStringsUtil.compress(valuesAsString);
         }
 
@@ -194,7 +189,7 @@ public class StateRepository {
         }
 
         // it could be that previously the value took more chunks
-        if (this.importConfigProperties.isCompactState()) {
+        if (this.importConfigProperties.getRemoteState().isCompact()) {
             while (customAttributes.remove(getCustomAttributeKey(entity) + "-" + index) != null) {
                 index++;
             }

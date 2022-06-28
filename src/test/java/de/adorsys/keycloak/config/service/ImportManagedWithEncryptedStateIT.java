@@ -22,11 +22,14 @@ package de.adorsys.keycloak.config.service;
 
 import de.adorsys.keycloak.config.AbstractImportIT;
 import de.adorsys.keycloak.config.properties.ImportConfigProperties;
+import de.adorsys.keycloak.config.util.CompactStringsUtil;
+import de.adorsys.keycloak.config.util.CryptoUtil;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -84,5 +87,83 @@ class ImportManagedWithEncryptedStateIT extends AbstractImportIT {
         ) + "-0";
 
         assertThat(realm.getAttributes().get(attributeKey), not(containsString("role")));
+
+    }
+
+    @Test
+    @Order(2)
+    void shouldUpdateEncryptedStateAndCompactIt() throws IOException {
+        ReflectionTestUtils.setField(importConfigProperties.getRemoteState(), "compact", true);
+
+        doImport("2_update_realm.json");
+
+        RealmRepresentation realm = keycloakProvider.getInstance().realm(REALM_NAME).toRepresentation();
+        assertThat(realm.getRealm(), is(REALM_NAME));
+        assertThat(realm.isEnabled(), is(true));
+
+        String attributeKey = MessageFormat.format(
+                ImportConfigProperties.REALM_STATE_ATTRIBUTE_PREFIX_KEY,
+                importConfigProperties.getCache().getKey(),
+                "roles-realm"
+        );
+
+        var compactAttribute = ImportManagedWithCompactStateIT.getAttribute(realm, attributeKey);
+        assertThat(compactAttribute, not(containsString("role")));
+        var decryptedAttribute = CryptoUtil.decrypt(
+                CompactStringsUtil.decompress(compactAttribute),
+                this.importConfigProperties.getRemoteState().getEncryptionKey(),
+                this.importConfigProperties.getRemoteState().getEncryptionSalt()
+        );
+        assertThat(decryptedAttribute, is("[\"role1\"]"));
+    }
+
+    @Test
+    @Order(3)
+    void shouldUpdateEncryptedAndCompactedState() throws IOException {
+        doImport("1_update_realm.json");
+
+        RealmRepresentation realm = keycloakProvider.getInstance().realm(REALM_NAME).toRepresentation();
+        assertThat(realm.getRealm(), is(REALM_NAME));
+        assertThat(realm.isEnabled(), is(true));
+
+        String attributeKey = MessageFormat.format(
+                ImportConfigProperties.REALM_STATE_ATTRIBUTE_PREFIX_KEY,
+                importConfigProperties.getCache().getKey(),
+                "roles-realm"
+        );
+
+        var compactAttribute = ImportManagedWithCompactStateIT.getAttribute(realm, attributeKey);
+        assertThat(compactAttribute, not(containsString("role")));
+        var decryptedAttribute = CryptoUtil.decrypt(
+                CompactStringsUtil.decompress(compactAttribute),
+                this.importConfigProperties.getRemoteState().getEncryptionKey(),
+                this.importConfigProperties.getRemoteState().getEncryptionSalt()
+        );
+        assertThat(decryptedAttribute, is("[]"));
+    }
+
+    @Test
+    @Order(4)
+    void shouldUpdateEncryptedAndCompactedStateAndDecompressIt() throws IOException {
+        ReflectionTestUtils.setField(importConfigProperties.getRemoteState(), "compact", false);
+        doImport("2_update_realm.json");
+
+        RealmRepresentation realm = keycloakProvider.getInstance().realm(REALM_NAME).toRepresentation();
+        assertThat(realm.getRealm(), is(REALM_NAME));
+        assertThat(realm.isEnabled(), is(true));
+
+        String attributeKey = MessageFormat.format(
+                ImportConfigProperties.REALM_STATE_ATTRIBUTE_PREFIX_KEY,
+                importConfigProperties.getCache().getKey(),
+                "roles-realm"
+        );
+
+        var encryptedAttribute = ImportManagedWithCompactStateIT.getAttribute(realm, attributeKey);
+        var decryptedAttribute = CryptoUtil.decrypt(
+                encryptedAttribute,
+                this.importConfigProperties.getRemoteState().getEncryptionKey(),
+                this.importConfigProperties.getRemoteState().getEncryptionSalt()
+        );
+        assertThat(decryptedAttribute, is("[\"role1\"]"));
     }
 }

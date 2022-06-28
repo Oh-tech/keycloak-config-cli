@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "realm": "realmWithManagedEncryptedSate",
+  "roles": {
+    "realm": [
+      {
+        "name": "role1"
+      }
+    ]
+  }
+}

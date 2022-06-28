@@ -21,8 +21,9 @@
 package de.adorsys.keycloak.config.util;
 
 import de.adorsys.keycloak.config.exception.ImportProcessingException;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.IOUtils;
+import org.springframework.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,6 +34,9 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public class CompactStringsUtil {
+
+    private static final int MIN_COMPRESSED_ARRAY_LENGTH = 2;
+
     CompactStringsUtil() {
         throw new IllegalStateException("Utility class");
     }
@@ -48,12 +52,23 @@ public class CompactStringsUtil {
         return Base64.encodeBase64String(outputStream.toByteArray());
     }
 
-    public static boolean isBase64(String value) {
-        return Base64.isBase64(value);
+    private static boolean isNotBase64(String value) {
+        return !StringUtils.hasLength(value) || !Base64.isBase64(value);
+    }
+
+    public static boolean isCompressed(String value) {
+        if (isNotBase64(value)) {
+            return false;
+        }
+
+        byte[] compressedContent = Base64.decodeBase64(value);
+        return compressedContent.length > MIN_COMPRESSED_ARRAY_LENGTH
+                && compressedContent[0] == (byte) GZIPInputStream.GZIP_MAGIC
+                && compressedContent[1] == (byte) (GZIPInputStream.GZIP_MAGIC >> 8);
     }
 
     public static String decompress(String value) {
-        if (!isBase64(value)) {
+        if (isNotBase64(value)) {
             // The value is not Base64
             return value;
         }

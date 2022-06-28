@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+
+- The state can be kept in a compacted form (zipped and Base64 encoded) to reduce the size of the RealmRepresentation object.
+
 ## [5.2.1] - 2022-06-20
 
 ### Added

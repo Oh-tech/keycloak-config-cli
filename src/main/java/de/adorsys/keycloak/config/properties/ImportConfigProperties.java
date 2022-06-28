@@ -62,36 +62,6 @@ public class ImportConfigProperties {
     @Valid
     private final ImportRemoteStateProperties remoteState;
 
-    @NotNull
-    private final boolean skipAttributesForFederatedUser;
-
-    public ImportConfigProperties(
-            Collection<String> path,
-            Collection<String> exclude,
-            boolean hiddenFiles,
-            boolean varSubstitution,
-            boolean force,
-            boolean validate,
-            String cacheKey,
-            boolean state,
-            boolean compactState,
-            String stateEncryptionKey,
-            String stateEncryptionSalt,
-            ImportFileType fileType,
-            boolean parallel,
-            boolean varSubstitutionInVariables,
-            boolean varSubstitutionUndefinedThrowsExceptions,
-            String varSubstitutionPrefix,
-            String varSubstitutionSuffix,
-            ImportManagedProperties managed,
-            boolean syncUserFederation,
-            boolean removeDefaultRoleFromUser,
-            boolean skipAttributesForFederatedUser) {
-        this.path = path;
-        this.exclude = exclude;
-        this.hiddenFiles = hiddenFiles;
-        this.varSubstitution = varSubstitution;
-        this.force = force;
     public ImportConfigProperties(boolean validate, boolean parallel,
                                   ImportFilesProperties files, ImportVarSubstitutionProperties varSubstitution,
                                   ImportBehaviorsProperties behaviors, ImportCacheProperties cache, ImportManagedProperties managed,
@@ -135,62 +105,6 @@ public class ImportConfigProperties {
         return managed;
     }
 
-    public boolean isState() {
-        return state;
-    }
-
-    public boolean isCompactState() {
-        return compactState;
-    }
-
-    public String getStateEncryptionKey() {
-        return stateEncryptionKey;
-    }
-
-    public String getStateEncryptionSalt() {
-        return stateEncryptionSalt;
-    }
-
-    public ImportFileType getFileType() {
-        return fileType;
-    }
-
-    public boolean isParallel() {
-        return parallel;
-    }
-
-    public boolean isVarSubstitutionInVariables() {
-        return varSubstitutionInVariables;
-    }
-
-    public boolean isVarSubstitutionUndefinedThrowsExceptions() {
-        return varSubstitutionUndefinedThrowsExceptions;
-    }
-
-    public String getVarSubstitutionPrefix() {
-        return varSubstitutionPrefix;
-    }
-
-    public String getVarSubstitutionSuffix() {
-        return varSubstitutionSuffix;
-    }
-
-    public boolean isSyncUserFederation() {
-        return syncUserFederation;
-    }
-
-    public boolean isRemoveDefaultRoleFromUser() {
-        return removeDefaultRoleFromUser;
-    }
-
-    public boolean isSkipAttributesForFederatedUser() {
-        return skipAttributesForFederatedUser;
-    }
-
-    public enum ImportFileType {
-        AUTO,
-        JSON,
-        YAML
     public ImportRemoteStateProperties getRemoteState() {
         return remoteState;
     }
@@ -448,19 +362,27 @@ public class ImportConfigProperties {
         @NotNull
         private final boolean enabled;
 
+        @NotNull
+        private final boolean compact;
+
         private final String encryptionKey;
 
         @Pattern(regexp = "^[A-Fa-f0-9]+$")
         private final String encryptionSalt;
 
-        public ImportRemoteStateProperties(boolean enabled, String encryptionKey, String encryptionSalt) {
+        public ImportRemoteStateProperties(boolean enabled, boolean compact, String encryptionKey, String encryptionSalt) {
             this.enabled = enabled;
+            this.compact = compact;
             this.encryptionKey = encryptionKey;
             this.encryptionSalt = encryptionSalt;
         }
 
         public boolean isEnabled() {
             return enabled;
+        }
+
+        public boolean isCompact() {
+            return compact;
         }
 
         public String getEncryptionKey() {

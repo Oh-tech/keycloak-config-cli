@@ -21,13 +21,16 @@
 package de.adorsys.keycloak.config.util;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CompactStringsUtilTest {
 
@@ -42,9 +45,28 @@ class CompactStringsUtilTest {
         String compressed = CompactStringsUtil.compress(JsonUtil.toJson(data));
 
         // Then
+        assertThat(CompactStringsUtil.isCompressed(compressed)).isTrue();
         assertThat(JsonUtil.fromJson(CompactStringsUtil.decompress(compressed))).isEqualTo(data);
         assertThat(JsonUtil.fromJson(CompactStringsUtil.decompress(JsonUtil.toJson(data)))).isEqualTo(data);
+    }
 
+    @ParameterizedTest
+    @MethodSource("de.adorsys.keycloak.config.util.CompactStringsUtilTest#nonZippedStrings")
+    void testNotGzippedStringsDetected(String value) {
+        assertThat(CompactStringsUtil.isCompressed(value)).isFalse();
+    }
+
+    private static Stream<Arguments> nonZippedStrings() {
+        return Stream.of(
+                Arguments.of(new Object[] {null}),
+                Arguments.of(""),
+                Arguments.of("8"),
+                Arguments.of(CryptoUtil.encrypt(
+                        "test-value",
+                        "password",
+                        "2B"
+                ))
+        );
     }
 
 }
