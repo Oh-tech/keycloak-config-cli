@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [5.5.0] - 2022-11-12
+
+### Added
+- Added support for keycloak 20
+- Realm export scripts now use the new kc.sh export command
+
+### Removed
+- Support for Keycloak 16
+
+## [5.4.0] - 2022-11-07
+
+### Added
+- Added latest Keycloak 19.0.3 library
+- Added support for managing user profiles
+
+## [5.3.1] - 2022-08-02
+
 ### Added
 
 - The state can be kept in a compacted form (zipped and Base64 encoded) to reduce the size of the RealmRepresentation object.
@@ -634,7 +651,16 @@ A lot of import properties are added over the years. this major release of keycl
 
 <!-- @formatter:off -->
 
+<<<<<<< HEAD
 [Unreleased]: https://github.com/adorsys/keycloak-config-cli/compare/v5.2.1...HEAD
+=======
+[Unreleased]: https://github.com/adorsys/keycloak-config-cli/compare/v5.5.0...HEAD
+[5.5.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.4.0...v5.5.0
+[5.4.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.3.1...v5.4.0
+[5.3.1]: https://github.com/adorsys/keycloak-config-cli/compare/v5.3.0...v5.3.1
+[5.3.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.2.2...v5.3.0
+[5.2.2]: https://github.com/adorsys/keycloak-config-cli/compare/v5.2.1...v5.2.2
+>>>>>>> upstream/main
 [5.2.1]: https://github.com/adorsys/keycloak-config-cli/compare/v5.2.0...v5.2.1
 [5.2.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.0.0...v5.1.0

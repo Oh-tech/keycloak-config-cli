@@ -11,7 +11,7 @@
     <groupId>de.adorsys.keycloak</groupId>
     <artifactId>keycloak-config-cli</artifactId>
     <packaging>jar</packaging>
-    <version>5.2.2-SNAPSHOT</version>
+    <version>5.5.1-SNAPSHOT</version>
 
     <name>keycloak-config-cli</name>
     <url>https://github.com/adorsys/keycloak-config-cli</url>
@@ -59,7 +59,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <keycloak.version>18.0.1</keycloak.version>
+        <keycloak.version>20.0.1</keycloak.version>
 
         <checkstyle-plugin.version>3.1.2</checkstyle-plugin.version>
         <checkstyle.version>10.0</checkstyle.version>
@@ -76,7 +76,7 @@
         <license-plugin.version>2.0.0</license-plugin.version>
         <logstash-logback-encoder.version>7.2</logstash-logback-encoder.version>
         <maven-failsafe-plugin.version>3.0.0-M5</maven-failsafe-plugin.version>
-        <maven-release-plugin.version>3.0.0-M6</maven-release-plugin.version>
+        <maven-release-plugin.version>3.0.0-M7</maven-release-plugin.version>
         <maven-replacer.version>1.5.3</maven-replacer.version>
         <maven-scm-plugin.version>1.13.0</maven-scm-plugin.version>
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
@@ -84,11 +84,12 @@
         <pmd-plugin.version>3.17.0</pmd-plugin.version>
         <pmd.version>6.47.0</pmd.version>
         <reproducible-build-maven-plugin.version>0.15</reproducible-build-maven-plugin.version>
-        <resteasy.version>5.0.3.Final</resteasy.version>
-        <spotbugs-plugin.version>4.7.0.0</spotbugs-plugin.version>
-        <spotbugs.version>4.6.0</spotbugs.version>
-        <testcontainers.version>1.17.2</testcontainers.version>
-        <unboundid-ldapsdk.version>6.0.5</unboundid-ldapsdk.version>
+
+        <resteasy.version>5.0.4.Final</resteasy.version>
+        <spotbugs-plugin.version>4.7.2.1</spotbugs-plugin.version>
+        <spotbugs.version>4.7.3</spotbugs.version>
+        <testcontainers.version>1.17.5</testcontainers.version>
+        <unboundid-ldapsdk.version>6.0.6</unboundid-ldapsdk.version>
         <wiremock-jre8.version>2.27.2</wiremock-jre8.version>
 
         <sonar.projectKey>keycloak-config-cli</sonar.projectKey>
