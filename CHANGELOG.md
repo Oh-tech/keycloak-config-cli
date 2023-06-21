@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- Refactored support for user profile updates
+
+## [5.6.1] - 2023-03-05
+
+## [5.6.0] - 2023-03-05
+
+### Added
+- Added support for keycloak 21
+
+### Changed
+- Upgraded to latest keycloak 20 bugfix version
+
+### Fixed
+- Consider all authentication subflows during updates.
 
 ## [5.5.0] - 2022-11-12
 
@@ -651,16 +665,14 @@ A lot of import properties are added over the years. this major release of keycl
 
 <!-- @formatter:off -->
 
-<<<<<<< HEAD
-[Unreleased]: https://github.com/adorsys/keycloak-config-cli/compare/v5.2.1...HEAD
-=======
-[Unreleased]: https://github.com/adorsys/keycloak-config-cli/compare/v5.5.0...HEAD
+[Unreleased]: https://github.com/adorsys/keycloak-config-cli/compare/v5.6.1...HEAD
+[5.6.1]: https://github.com/adorsys/keycloak-config-cli/compare/v5.6.0...v5.6.1
+[5.6.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.5.0...v5.6.0
 [5.5.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.4.0...v5.5.0
 [5.4.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.3.1...v5.4.0
 [5.3.1]: https://github.com/adorsys/keycloak-config-cli/compare/v5.3.0...v5.3.1
 [5.3.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.2.2...v5.3.0
 [5.2.2]: https://github.com/adorsys/keycloak-config-cli/compare/v5.2.1...v5.2.2
->>>>>>> upstream/main
 [5.2.1]: https://github.com/adorsys/keycloak-config-cli/compare/v5.2.0...v5.2.1
 [5.2.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.0.0...v5.1.0
