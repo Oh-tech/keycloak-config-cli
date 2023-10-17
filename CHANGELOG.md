@@ -5,7 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [5.8.0] - 2023-07-14
+
+### Added
+- Support for Keycloak 22
+
+### Changed
+- Migrated from Java EE to Jakarta EE
+- Migrated imports of javax packages to jakarta packages
+- Upgraded Spring Boot to 2.7.13
+
+## [5.7.0] - 2023-07-14
+
+### Changed
 - Refactored support for user profile updates
+- Attribute groups are now allowed in the `userProfile` property in json import. The format to import User Declarative Profile attributes (and attribute groups) has slightly changed. To migrate to the new format:
+    - transform the `userProfile` property to a JSON object with two properties: `attributes` and `groups`
+    - copy the JSON array of the old `userProfile` property to the new `userProfile.attributes` property
+    - create a new JSON array for the `userProfile.groups` property (containing the attribute groups definitions)
+    - in the end, the `userProfile` property should match the content of the "JSON editor" tab in the "Realm settings > User profile" page from the Keycloak admin console
+- Add support for managing client-policies
 
 ## [5.6.1] - 2023-03-05
 
@@ -665,7 +685,9 @@ A lot of import properties are added over the years. this major release of keycl
 
 <!-- @formatter:off -->
 
-[Unreleased]: https://github.com/adorsys/keycloak-config-cli/compare/v5.6.1...HEAD
+[Unreleased]: https://github.com/adorsys/keycloak-config-cli/compare/v5.8.0...HEAD
+[5.8.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.7.0...v5.8.0
+[5.7.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.6.1...v5.7.0
 [5.6.1]: https://github.com/adorsys/keycloak-config-cli/compare/v5.6.0...v5.6.1
 [5.6.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.5.0...v5.6.0
 [5.5.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.4.0...v5.5.0
