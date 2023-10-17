@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [5.9.0] - 2023-10-13
+- Updated CI to use Keycloak 22.0.4
+
+### Added
+- Support for managing `Client Authorization Policies` like other resources by configuring `import.managed.client-authorization-policies=<full|no-delete>`. This prevents deletion of remote managed policies.
+- Support for managing `Client Authorization Scopes` like other resources by configuring `import.managed.client-authorization-scopes=<full|no-delete>`. This prevents deletion of remote managed scopes.
+
+### Changed
+- Fix issue [#907](/adorsys/keycloak-config-cli/issues/907):
+  - add missing dependency jakarta.xml.bind-api
+  - lower logstash version from 7.4 to 7.2: 7.2 is the last version to support logback 1.2, which is the version required for Spring and other components used here
 ## [5.8.0] - 2023-07-14
 
 ### Added
@@ -685,7 +696,8 @@ A lot of import properties are added over the years. this major release of keycl
 
 <!-- @formatter:off -->
 
-[Unreleased]: https://github.com/adorsys/keycloak-config-cli/compare/v5.8.0...HEAD
+[Unreleased]: https://github.com/adorsys/keycloak-config-cli/compare/v5.9.0...HEAD
+[5.9.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.8.0...v5.9.0
 [5.8.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.7.0...v5.8.0
 [5.7.0]: https://github.com/adorsys/keycloak-config-cli/compare/v5.6.1...v5.7.0
 [5.6.1]: https://github.com/adorsys/keycloak-config-cli/compare/v5.6.0...v5.6.1
