@@ -124,7 +124,7 @@ public class ImportConfigProperties {
         private final ImportManagedPropertiesValues scopeMapping;
 
         @NotNull
-        private final ImportManagedPropertiesValues clientScopeMapping;
+        private final ExtendedImportManagedPropertiesValues clientScopeMapping;
 
         @NotNull
         private final ImportManagedPropertiesValues component;
@@ -156,15 +156,19 @@ public class ImportConfigProperties {
         @NotNull
         private final ImportManagedPropertiesValues clientAuthorizationScopes;
 
+        @NotNull
+        private final ImportManagedPropertiesValues messageBundles;
+
         public ImportManagedProperties(ImportManagedPropertiesValues requiredAction, ImportManagedPropertiesValues group,
                                        ImportManagedPropertiesValues clientScope, ImportManagedPropertiesValues scopeMapping,
-                                       ImportManagedPropertiesValues clientScopeMapping, ImportManagedPropertiesValues component,
+                                       ExtendedImportManagedPropertiesValues clientScopeMapping, ImportManagedPropertiesValues component,
                                        ImportManagedPropertiesValues subComponent, ImportManagedPropertiesValues authenticationFlow,
                                        ImportManagedPropertiesValues identityProvider, ImportManagedPropertiesValues identityProviderMapper,
                                        ImportManagedPropertiesValues role, ImportManagedPropertiesValues client,
                                        ImportManagedPropertiesValues clientAuthorizationResources,
                                        ImportManagedPropertiesValues clientAuthorizationPolicies,
-                                       ImportManagedPropertiesValues clientAuthorizationScopes) {
+                                       ImportManagedPropertiesValues clientAuthorizationScopes,
+                                       ImportManagedPropertiesValues messageBundles) {
             this.requiredAction = requiredAction;
             this.group = group;
             this.clientScope = clientScope;
@@ -180,6 +184,7 @@ public class ImportConfigProperties {
             this.clientAuthorizationResources = clientAuthorizationResources;
             this.clientAuthorizationPolicies = clientAuthorizationPolicies;
             this.clientAuthorizationScopes = clientAuthorizationScopes;
+            this.messageBundles = messageBundles;
         }
 
         public ImportManagedPropertiesValues getRequiredAction() {
@@ -194,7 +199,7 @@ public class ImportConfigProperties {
             return scopeMapping;
         }
 
-        public ImportManagedPropertiesValues getClientScopeMapping() {
+        public ExtendedImportManagedPropertiesValues getClientScopeMapping() {
             return clientScopeMapping;
         }
 
@@ -242,8 +247,16 @@ public class ImportConfigProperties {
             return clientAuthorizationScopes;
         }
 
+        public ImportManagedPropertiesValues getMessageBundles() {
+            return messageBundles;
+        }
+
         public enum ImportManagedPropertiesValues {
             FULL, NO_DELETE
+        }
+
+        public enum ExtendedImportManagedPropertiesValues {
+            FULL, NO_DELETE, SENSITIVE
         }
     }
 

@@ -26,6 +26,8 @@ import de.adorsys.keycloak.config.repository.ClientRepository;
 import de.adorsys.keycloak.config.repository.RealmRepository;
 import de.adorsys.keycloak.config.repository.RoleRepository;
 import de.adorsys.keycloak.config.repository.ScopeMappingRepository;
+import de.adorsys.keycloak.config.util.KeycloakUtil;
+import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.ScopeMappingRepresentation;
@@ -34,12 +36,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import static de.adorsys.keycloak.config.properties.ImportConfigProperties.ImportManagedProperties.ExtendedImportManagedPropertiesValues.SENSITIVE;
 
 @Service
 public class ClientScopeMappingImportService {
@@ -79,7 +80,7 @@ public class ClientScopeMappingImportService {
         }
 
         if (existingClientScopeMappings != null && importConfigProperties.getManaged().getClientScopeMapping()
-                == ImportConfigProperties.ImportManagedProperties.ImportManagedPropertiesValues.FULL) {
+                != ImportConfigProperties.ImportManagedProperties.ExtendedImportManagedPropertiesValues.NO_DELETE) {
             for (Map.Entry<String, List<ScopeMappingRepresentation>> existingClientScopeMapping : existingClientScopeMappings.entrySet()) {
                 removeClientScopeMapping(
                         realmName, existingClientScopeMapping.getKey(), existingClientScopeMapping.getValue(), clientScopeMappingsToImport
@@ -162,7 +163,12 @@ public class ClientScopeMappingImportService {
             if (rolesToBeRemoved.isEmpty()) continue;
 
             if (existingClientScope.getClient() != null) {
-                if (clientRepository.searchByClientId(realmName, existingClientScope.getClient()).isEmpty()) return;
+
+                Optional<ClientRepresentation> clientRepresentation = clientRepository.searchByClientId(realmName, existingClientScope.getClient());
+                if (clientRepresentation.isEmpty() || importConfigProperties.getManaged().getClientScopeMapping() == SENSITIVE
+                        && clientRepresentation.filter(KeycloakUtil::isDefaultClient).isPresent()) {
+                    return;
+                }
 
                 logger.debug("Remove client-scope-mapping with roles '{}' from client level '{}' for client '{}' in realm '{}'",
                         clientId,

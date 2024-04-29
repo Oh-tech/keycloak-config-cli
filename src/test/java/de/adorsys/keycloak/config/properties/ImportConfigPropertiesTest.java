@@ -21,6 +21,7 @@
 package de.adorsys.keycloak.config.properties;
 
 import de.adorsys.keycloak.config.extensions.GithubActionsExtension;
+import de.adorsys.keycloak.config.properties.ImportConfigProperties.ImportManagedProperties.ExtendedImportManagedPropertiesValues;
 import de.adorsys.keycloak.config.properties.ImportConfigProperties.ImportManagedProperties.ImportManagedPropertiesValues;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -103,7 +104,7 @@ class ImportConfigPropertiesTest {
         assertThat(properties.getManaged().getRequiredAction(), is(ImportManagedPropertiesValues.NO_DELETE));
         assertThat(properties.getManaged().getClientScope(), is(ImportManagedPropertiesValues.NO_DELETE));
         assertThat(properties.getManaged().getScopeMapping(), is(ImportManagedPropertiesValues.NO_DELETE));
-        assertThat(properties.getManaged().getClientScopeMapping(), is(ImportManagedPropertiesValues.NO_DELETE));
+        assertThat(properties.getManaged().getClientScopeMapping(), is(ExtendedImportManagedPropertiesValues.NO_DELETE));
         assertThat(properties.getManaged().getComponent(), is(ImportManagedPropertiesValues.NO_DELETE));
         assertThat(properties.getManaged().getSubComponent(), is(ImportManagedPropertiesValues.NO_DELETE));
         assertThat(properties.getManaged().getIdentityProvider(), is(ImportManagedPropertiesValues.NO_DELETE));
